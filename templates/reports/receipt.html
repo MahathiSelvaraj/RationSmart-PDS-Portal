@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block title %}e-Ration Receipt - {{ transaction.bill_number }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 no-print">
+    <a href="javascript:history.back()" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Back
+    </a>
+    <div>
+        <button onclick="window.print()" class="btn btn-primary fw-bold">
+            <i class="bi bi-printer-fill me-1"></i> Print Digital e-Receipt
+        </button>
+    </div>
+</div>
+
+<!-- Receipt Container -->
+<div class="receipt-box shadow-sm">
+    <div class="text-center pb-3 border-bottom mb-3">
+        <i class="bi bi-patch-check-fill text-success fs-1"></i>
+        <h4 class="fw-bold mb-0 text-dark">PUBLIC DISTRIBUTION SYSTEM</h4>
+        <small class="text-muted text-uppercase tracking-wider">Department of Food & Civil Supplies</small>
+        <div class="mt-2">
+            <span class="badge bg-dark px-3 py-1">OFFICIAL e-RATION RECEIPT</span>
+        </div>
+    </div>
+
+    <!-- Shop & Bill Header Info -->
+    <div class="row g-2 small mb-3">
+        <div class="col-6">
+            <div class="text-muted">Bill Number:</div>
+            <strong class="fs-6"><code>{{ transaction.bill_number }}</code></strong>
+        </div>
+        <div class="col-6 text-end">
+            <div class="text-muted">Date & Time:</div>
+            <strong>{{ transaction.transaction_date.strftime('%d/%m/%Y %I:%M %p') }}</strong>
+        </div>
+        <div class="col-6">
+            <div class="text-muted">Fair Price Shop:</div>
+            <strong>{{ transaction.shop.shop_name }}</strong><br>
+            <small class="text-muted">Code: {{ transaction.shop.shop_code }} | Ward {{ transaction.shop.ward }}</small>
+        </div>
+        <div class="col-6 text-end">
+            <div class="text-muted">Licensed Dealer:</div>
+            <strong>{{ transaction.shop.dealer_name }}</strong><br>
+            <small class="text-muted">Lic: {{ transaction.shop.license_no }}</small>
+        </div>
+    </div>
+
+    <hr class="my-2">
+
+    <!-- Beneficiary Details -->
+    <div class="bg-light p-2 rounded small mb-3 border">
+        <div class="row g-1">
+            <div class="col-6">
+                <span class="text-muted">Card No:</span> <strong><code>{{ transaction.ration_card.card_number }}</code></strong>
+            </div>
+            <div class="col-6 text-end">
+                <span class="text-muted">Category:</span> 
+                {% set badge_info = transaction.ration_card.get_card_type_badge() %}
+                <span class="badge {{ badge_info[1] }}">{{ badge_info[0] }}</span>
+            </div>
+            <div class="col-6">
+                <span class="text-muted">Beneficiary:</span> <strong>{{ transaction.ration_card.head_of_family }}</strong>
+            </div>
+            <div class="col-6 text-end">
+                <span class="text-muted">Members:</span> <strong>{{ transaction.ration_card.family_members_count }}</strong> | <span class="text-muted">Aadhaar:</span> <strong>**{{ transaction.ration_card.aadhaar_last4 }}</strong>
+            </div>
+        </div>
+    </div>
+
+    <!-- Line Items Table -->
+    <table class="table table-sm table-bordered align-middle mb-3 small">
+        <thead class="table-light">
+            <tr>
+                <th>#</th>
+                <th>Commodity</th>
+                <th class="text-center">Quantity</th>
+                <th class="text-end">Rate (₹)</th>
+                <th class="text-end">Subtotal (₹)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in transaction.items %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td><strong>{{ item.commodity.name }}</strong></td>
+                <td class="text-center">{{ item.quantity }} {{ item.commodity.unit }}</td>
+                <td class="text-end">
+                    {% if item.unit_price == 0 %}FREE{% else %}₹{{ "%.2f"|format(item.unit_price) }}{% endif %}
+                </td>
+                <td class="text-end fw-bold">₹{{ "%.2f"|format(item.subtotal) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot class="table-light">
+            <tr>
+                <th colspan="4" class="text-end fs-6">Grand Total Amount Paid:</th>
+                <th class="text-end fs-6 text-success">₹{{ "%.2f"|format(transaction.total_amount) }}</th>
+            </tr>
+        </tfoot>
+    </table>
+
+    <!-- Authentication & Security Seal -->
+    <div class="p-2 border rounded bg-light small mb-3">
+        <div class="d-flex justify-content-between mb-1">
+            <span class="text-muted">Auth Verification:</span>
+            <span class="text-success fw-bold"><i class="bi bi-fingerprint me-1"></i>{{ transaction.auth_mode }}</span>
+        </div>
+        <div class="d-flex justify-content-between">
+            <span class="text-muted">Payment Method:</span>
+            <strong>{{ transaction.payment_mode }}</strong>
+        </div>
+    </div>
+
+    <!-- Footer Security QR & Verification Notice -->
+    <div class="text-center pt-2 border-top small text-muted">
+        <div class="p-2 border d-inline-block bg-white mb-2 rounded">
+            <i class="bi bi-qr-code fs-1 text-dark"></i>
+            <div style="font-size: 0.65rem;" class="font-monospace text-muted">TX: {{ transaction.bill_number }}</div>
+        </div>
+        <p class="mb-1">This is a system-generated authentic digital e-Ration cash memo.</p>
+        <p class="mb-0">Toll-Free Consumer Helpline: <strong>1800-11-4000</strong> | portal: <strong>rationsmart.gov.in</strong></p>
+    </div>
+</div>
+{% endblock %}

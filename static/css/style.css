@@ -1,0 +1,144 @@
+/* ==========================================================================
+   RationSmart - Simple PDS Portal Stylesheet
+   Theme: College Mini Project
+   ========================================================================== */
+
+:root {
+  --pds-primary: #025091;
+  --pds-primary-dark: #013661;
+  --pds-bg-light: #f8f9fa;
+  --pds-card-border: #ced4da;
+  --pds-text-dark: #212529;
+  --pds-text-muted: #6c757d;
+}
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--pds-bg-light);
+  color: var(--pds-text-dark);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Tricolor Top Bar (simplified) */
+.gov-topbar {
+  background-color: #ffffff;
+  border-bottom: 1px solid #ced4da;
+  font-size: 0.9rem;
+  padding: 8px 0;
+  color: #495057;
+}
+
+/* Navbar */
+.navbar-custom {
+  background-color: var(--pds-primary);
+  border-radius: 0;
+}
+.navbar-brand {
+  font-weight: bold;
+  font-size: 1.25rem;
+  color: #ffffff !important;
+}
+.navbar-custom .nav-link {
+  color: #f8f9fa !important;
+  border-radius: 4px;
+}
+.navbar-custom .nav-link:hover,
+.navbar-custom .nav-link.active {
+  background-color: var(--pds-primary-dark);
+}
+
+/* Main Container */
+main.content-wrapper {
+  flex: 1 0 auto;
+  padding: 2rem 0;
+}
+
+/* Card Styling */
+.card-pds {
+  background: #ffffff;
+  border: 1px solid var(--pds-card-border);
+  border-radius: 4px;
+  box-shadow: none;
+}
+.card-header-pds {
+  background: #f8f9fa;
+  border-bottom: 1px solid var(--pds-card-border);
+  padding: 0.75rem 1.25rem;
+  font-weight: bold;
+  color: var(--pds-primary);
+}
+
+/* Custom Badges (Simple) */
+.badge-aay {
+  background-color: #ffc107;
+  color: #000;
+  border: 1px solid #ffc107;
+}
+.badge-phh {
+  background-color: #e83e8c;
+  color: #fff;
+  border: 1px solid #e83e8c;
+}
+.badge-nphh {
+  background-color: #0d6efd;
+  color: #fff;
+  border: 1px solid #0d6efd;
+}
+.badge-ay {
+  background-color: #198754;
+  color: #fff;
+  border: 1px solid #198754;
+}
+
+/* Progress bar inside table */
+.progress-quota {
+  height: 12px;
+  border-radius: 2px;
+  background-color: #e9ecef;
+}
+
+/* POS Terminal */
+.pos-container {
+  background: #ffffff;
+  border-radius: 4px;
+  border: 1px solid var(--pds-card-border);
+}
+
+/* Receipt Print Styling */
+.receipt-box {
+  max-width: 600px;
+  margin: 0 auto;
+  background: #ffffff;
+  border: 1px solid #ced4da;
+  padding: 20px;
+}
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .receipt-box, .receipt-box * {
+    visibility: visible;
+  }
+  .receipt-box {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    border: none;
+    padding: 0;
+  }
+  .no-print {
+    display: none !important;
+  }
+}
+
+/* Footer */
+footer.gov-footer {
+  background-color: #343a40;
+  color: #ced4da;
+  padding: 1rem 0;
+  font-size: 0.9rem;
+  border-top: 1px solid #212529;
+}

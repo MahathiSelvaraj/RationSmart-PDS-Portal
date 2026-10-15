@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}Sales History & Daily Register - {{ shop.shop_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold text-primary mb-1"><i class="bi bi-journal-text me-2"></i>Fair Price Shop Sales Register</h3>
+        <p class="text-muted mb-0">{{ shop.shop_name }} ({{ shop.shop_code }}) | Monthly Period: {{ current_month_str }}</p>
+    </div>
+    <div>
+        <a href="{{ url_for('dealer_pos') }}" class="btn btn-primary">
+            <i class="bi bi-cart-plus me-1"></i> New Distribution
+        </a>
+    </div>
+</div>
+
+<!-- Filter Form -->
+<div class="card card-pds mb-4">
+    <div class="card-body">
+        <form action="{{ url_for('dealer_sales_history') }}" method="GET" class="row g-2 align-items-center">
+            <div class="col-md-6">
+                <input type="text" name="search" value="{{ search_query or '' }}" class="form-control" placeholder="Search by Bill No, Card No, or Customer Name...">
+            </div>
+            <div class="col-md-3">
+                <input type="date" name="date" value="{{ filter_date or '' }}" class="form-control" title="Filter by date">
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary w-100"><i class="bi bi-filter me-1"></i> Filter History</button>
+                <a href="{{ url_for('dealer_sales_history') }}" class="btn btn-outline-secondary" title="Reset Filters"><i class="bi bi-arrow-counterclockwise"></i></a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card card-pds mb-4">
+    <div class="card-header card-header-pds d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-receipt-cutoff text-success fs-5"></i>
+            <span class="fw-bold">All Completed Sales Transactions</span>
+        </div>
+        <div class="w-25">
+            <input type="text" class="form-control form-control-sm" placeholder="Filter by bill/card..." data-table-search="salesTable">
+        </div>
+    </div>
+    <div class="card-body">
+        {% if transactions %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle" id="salesTable">
+                <thead class="table-light">
+                    <tr>
+                        <th>Bill No.</th>
+                        <th>Date & Time</th>
+                        <th>Ration Card & Beneficiary</th>
+                        <th>Commodities Distributed</th>
+                        <th>Total Subsidized (₹)</th>
+                        <th>Auth Mode</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tx in transactions %}
+                    <tr>
+                        <td><code>{{ tx.bill_number }}</code></td>
+                        <td>{{ tx.transaction_date.strftime('%d-%b-%Y %I:%M %p') }}</td>
+                        <td>
+                            <strong class="d-block">{{ tx.ration_card.head_of_family }}</strong>
+                            <small class="text-muted">{{ tx.ration_card.card_number }} ({{ tx.ration_card.card_type }})</small>
+                        </td>
+                        <td>
+                            {% for item in tx.items %}
+                                <span class="badge bg-light text-dark border me-1">
+                                    {{ item.commodity.name }}: {{ item.quantity }} {{ item.commodity.unit }}
+                                </span>
+                            {% endfor %}
+                        </td>
+                        <td><strong class="text-success">₹{{ "%.2f"|format(tx.total_amount) }}</strong></td>
+                        <td>
+                            <span class="badge bg-success-subtle text-success border border-success-subtle small">
+                                <i class="bi bi-check-circle me-1"></i>{{ tx.auth_mode.split('(')[0] }}
+                            </span>
+                        </td>
+                        <td>
+                            <a href="{{ url_for('view_receipt', transaction_id=tx.id) }}" target="_blank" class="btn btn-outline-primary btn-sm">
+                                <i class="bi bi-printer me-1"></i> Receipt
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5 text-muted">
+            <i class="bi bi-cart-x fs-1 d-block mb-2"></i>
+            <p>No sales recorded in this shop yet.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+
+{% block title %}My Ration Portal - Digital Ration Shop{% endblock %}
+
+{% block content %}
+<div class="py-3">
+    <!-- Top Header Card -->
+    <div class="card card-pds mb-4 shadow-sm border-0 bg-primary text-white">
+        <div class="card-body p-4">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <span class="badge bg-warning text-dark mb-2 px-3 py-2 fs-6">
+                        <i class="bi bi-card-heading me-1"></i> {{ card.card_type }} RATION CARD
+                    </span>
+                    <h2 class="fw-bold mb-1">{{ card.head_of_family }}</h2>
+                    <p class="mb-0 text-white-50 fs-5">
+                        <i class="bi bi-upc-scan me-1"></i> Card No: <strong class="text-white">{{ card.card_number }}</strong>
+                    </p>
+                </div>
+                <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                    <div class="bg-white bg-opacity-10 p-3 rounded-3 border border-light border-opacity-25">
+                        <small class="text-white-50 d-block">Assigned Fair Price Shop</small>
+                        <strong class="fs-6 d-block">{{ card.assigned_shop.shop_name if card.assigned_shop else 'Not Assigned' }}</strong>
+                        <span class="badge bg-info text-dark mt-1">{{ card.assigned_shop.shop_code if card.assigned_shop else 'N/A' }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <!-- Customer Details & Family Members -->
+        <div class="col-lg-4">
+            <div class="card card-pds shadow-sm mb-4">
+                <div class="card-header bg-light fw-bold py-3">
+                    <i class="bi bi-person-lines-fill me-2 text-primary"></i>Cardholder Details
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span class="text-muted">Head of Family</span>
+                            <span class="fw-bold">{{ card.head_of_family }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span class="text-muted">Card Status</span>
+                            {% if card.status == 'Active' %}
+                                <span class="badge bg-success">Active</span>
+                            {% else %}
+                                <span class="badge bg-danger">{{ card.status }}</span>
+                            {% endif %}
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span class="text-muted">Registered Mobile</span>
+                            <span>{{ card.mobile or 'N/A' }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span class="text-muted">Aadhaar (Last 4)</span>
+                            <span>XXXX-XXXX-{{ card.aadhaar_last4 or 'N/A' }}</span>
+                        </li>
+                        <li class="list-group-item">
+                            <span class="text-muted d-block small">Registered Address</span>
+                            <span class="fw-semibold">{{ card.address or 'N/A' }}</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card card-pds shadow-sm">
+                <div class="card-header bg-light fw-bold py-3 d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-people-fill me-2 text-primary"></i>Family Members</span>
+                    <span class="badge bg-secondary">{{ family_members|length }} Members</span>
+                </div>
+                <div class="card-body p-0">
+                    {% if family_members %}
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0 align-middle">
+                                <thead class="table-light small">
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Relation</th>
+                                        <th>Age / Gender</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for member in family_members %}
+                                        <tr>
+                                            <td class="fw-semibold">{{ member.full_name }}</td>
+                                            <td><span class="badge bg-light text-dark border">{{ member.relationship }}</span></td>
+                                            <td><small class="text-muted">{{ member.age }} yrs / {{ member.gender }}</small></td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="p-3 text-muted mb-0 text-center">No family members registered.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Monthly Quota Allocation Status -->
+        <div class="col-lg-8">
+            <div class="card card-pds shadow-sm mb-4">
+                <div class="card-header bg-light py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="fw-bold mb-0 text-primary">
+                        <i class="bi bi-calendar-check-fill me-2"></i>Monthly Grain Quota Allocation ({{ quota_status.month_period }})
+                    </h5>
+                    <span class="badge bg-primary px-3 py-2">Scheme: {{ quota_status.scheme_name }}</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover mb-0 align-middle">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Commodity</th>
+                                    <th>Allocation Basis</th>
+                                    <th>Unit Price</th>
+                                    <th class="text-center">Monthly Entitlement</th>
+                                    <th class="text-center">Already Lifted</th>
+                                    <th class="text-center">Remaining Quota</th>
+                                    <th class="text-end">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in quota_status.quota_items %}
+                                    <tr>
+                                        <td class="fw-bold">
+                                            <i class="bi bi-box-seam me-1 text-primary"></i> {{ item.commodity_name if item.commodity_name else item.name }}
+                                        </td>
+                                        <td>
+                                            {% if item.allocation_basis == 'PER_PERSON' %}
+                                                <span class="badge bg-primary"><i class="bi bi-person me-1"></i>Per Person ({{ item.quantity_per_unit }} {{ item.unit }}/head)</span>
+                                            {% else %}
+                                                <span class="badge bg-info text-dark"><i class="bi bi-card-text me-1"></i>Per Card ({{ item.quantity_per_unit }} {{ item.unit }}/card)</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if item.unit_price == 0.0 %}
+                                                <span class="badge bg-success">FREE</span>
+                                            {% else %}
+                                                ₹{{ "%.2f"|format(item.unit_price) }} / {{ item.unit }}
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-center fw-bold text-dark">
+                                            {{ item.entitled_qty }} {{ item.unit }}
+                                        </td>
+                                        <td class="text-center text-secondary">
+                                            {{ item.claimed_qty }} {{ item.unit }}
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="fw-bold fs-6 {% if item.remaining_qty > 0 %}text-success{% else %}text-muted{% endif %}">
+                                                {{ item.remaining_qty }} {{ item.unit }}
+                                            </span>
+                                        </td>
+                                        <td class="text-end">
+                                            {% if item.remaining_qty <= 0 %}
+                                                <span class="badge bg-secondary"><i class="bi bi-check-all me-1"></i>Fully Claimed</span>
+                                            {% elif item.claimed_qty > 0 %}
+                                                <span class="badge bg-warning text-dark"><i class="bi bi-hourglass-split me-1"></i>Partially Lifted</span>
+                                            {% else %}
+                                                <span class="badge bg-success"><i class="bi bi-box-arrow-in-down me-1"></i>Available</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Customer Purchase & Distribution History -->
+            <div class="card card-pds shadow-sm">
+                <div class="card-header bg-light py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="fw-bold mb-0 text-dark">
+                        <i class="bi bi-clock-history me-2 text-primary"></i>My Ration Transaction History
+                    </h5>
+                    <span class="badge bg-secondary">{{ transactions|length }} Purchases</span>
+                </div>
+                <div class="card-body p-0">
+                    {% if transactions %}
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0 align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Bill Number</th>
+                                        <th>Date & Time</th>
+                                        <th>Distribution Shop</th>
+                                        <th>Amount</th>
+                                        <th>Status</th>
+                                        <th class="text-end">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for tx in transactions %}
+                                        <tr>
+                                            <td class="fw-bold text-primary">{{ tx.bill_number }}</td>
+                                            <td>
+                                                <small class="d-block text-dark">{{ tx.transaction_date.strftime('%d %b %Y') }}</small>
+                                                <small class="text-muted">{{ tx.transaction_date.strftime('%I:%M %p') }}</small>
+                                            </td>
+                                            <td>
+                                                <span class="fw-semibold d-block small">{{ tx.shop.shop_name if tx.shop else 'N/A' }}</span>
+                                                <small class="text-muted">{{ tx.shop.shop_code if tx.shop else '' }}</small>
+                                            </td>
+                                            <td class="fw-bold">
+                                                {% if tx.total_amount == 0.0 %}
+                                                    <span class="badge bg-success">₹0.00 (Free)</span>
+                                                {% else %}
+                                                    ₹{{ "%.2f"|format(tx.total_amount) }}
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Completed</span>
+                                            </td>
+                                            <td class="text-end">
+                                                <a href="{{ url_for('view_receipt', transaction_id=tx.id) }}" class="btn btn-sm btn-outline-primary fw-bold" target="_blank">
+                                                    <i class="bi bi-receipt me-1"></i> e-Receipt
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="p-4 text-center text-muted">
+                            <i class="bi bi-inbox fs-1 text-secondary d-block mb-2"></i>
+                            <p class="mb-0">No ration purchases recorded for this card yet.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

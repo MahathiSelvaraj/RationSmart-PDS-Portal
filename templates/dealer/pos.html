@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+
+{% block title %}Dealer POS Terminal - {{ shop.shop_name }}{% endblock %}
+
+{% block content %}
+<!-- POS Top Header -->
+<div class="card card-pds bg-light border-primary mb-4">
+    <div class="card-body p-3">
+        <div class="d-flex align-items-center">
+            <div class="bg-primary text-white p-3 rounded-3 me-3">
+                <i class="bi bi-cart3 fs-3"></i>
+            </div>
+            <div>
+                <h5 class="fw-bold mb-0 text-primary">{{ shop.shop_name }} <span class="badge bg-dark">{{ shop.shop_code }}</span></h5>
+                <small class="text-muted"><i class="bi bi-person me-1"></i>Dealer: {{ shop.dealer_name }} | <i class="bi bi-geo-alt me-1"></i>{{ shop.ward }}</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Main POS Section -->
+    <div class="col-lg-8">
+        <!-- Beneficiary Search Bar -->
+        <div class="card card-pds mb-4">
+            <div class="card-header card-header-pds">
+                <i class="bi bi-person-bounding-box me-2 text-primary"></i>Step 1: Authenticate Beneficiary / Search Ration Card
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('dealer_pos') }}" method="GET" class="row g-2">
+                    <input type="hidden" name="shop_id" value="{{ shop.id }}">
+                    <div class="col-md-9">
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="bi bi-credit-card"></i></span>
+                            <input type="text" name="card_number" value="{{ card_search or '' }}" class="form-control form-control-lg" placeholder="Scan / Enter Ration Card No. or Aadhaar Last 4..." required autofocus>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold">
+                            <i class="bi bi-search me-1"></i> Lookup
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Quick test helper chips -->
+                <div class="mt-2 small text-muted">
+                    <span>Quick Test: </span>
+                    <a href="{{ url_for('dealer_pos', card_number='RC-AAY-1001', shop_id=shop.id) }}" class="badge bg-light text-dark border text-decoration-none">RC-AAY-1001 (Yellow)</a>
+                    <a href="{{ url_for('dealer_pos', card_number='RC-PHH-2001', shop_id=shop.id) }}" class="badge bg-light text-dark border text-decoration-none">RC-PHH-2001 (Pink)</a>
+                    <a href="{{ url_for('dealer_pos', card_number='RC-AY-4001', shop_id=shop.id) }}" class="badge bg-light text-dark border text-decoration-none">RC-AY-4001 (Green)</a>
+                </div>
+            </div>
+        </div>
+
+        {% if selected_card and quota_status %}
+        <!-- Step 2: Distribution Entry & Quota Verification Form -->
+        <div class="card card-pds">
+            <div class="card-header card-header-pds bg-light d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-cart-check-fill me-2 text-success"></i>Step 2: Grain Disbursal & Biometric Recording</span>
+                <span class="badge bg-primary">{{ quota_status.month_period }} Quota</span>
+            </div>
+            <div class="card-body">
+                <!-- Beneficiary Card Summary -->
+                <div class="alert alert-info py-2 px-3 mb-3 d-flex flex-wrap justify-content-between align-items-center">
+                    <div>
+                        <strong class="fs-5">{{ selected_card.head_of_family }}</strong>
+                        <span class="text-muted ms-2">(Card: <code>{{ selected_card.card_number }}</code>)</span>
+                        {% set badge_info = selected_card.get_card_type_badge() %}
+                        <span class="badge {{ badge_info[1] }} ms-2">{{ badge_info[0] }}</span>
+                    </div>
+                    <div>
+                        <span class="badge bg-dark"><i class="bi bi-people me-1"></i>{{ selected_card.family_members_count }} Member(s)</span>
+                        <span class="badge bg-secondary ms-1"><i class="bi bi-shield-check me-1"></i>Aadhaar: **{{ selected_card.aadhaar_last4 }}</span>
+                    </div>
+                </div>
+
+                <!-- Over-Quota Warning Alert Box (JS driven) -->
+                <div id="posQuotaWarning" class="alert alert-danger d-none mb-3"></div>
+
+                <!-- Sales Form -->
+                <form action="{{ url_for('process_sale') }}" method="POST" id="posForm">
+                    <input type="hidden" name="ration_card_id" value="{{ selected_card.id }}">
+                    <input type="hidden" name="shop_id" value="{{ shop.id }}">
+
+                    <div class="table-responsive mb-3">
+                        <table class="table table-bordered align-middle">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Commodity</th>
+                                    <th>Unit Price</th>
+                                    <th>Monthly Entitlement</th>
+                                    <th>Already Received</th>
+                                    <th>Remaining Quota</th>
+                                    <th style="width: 140px;">Disburse Qty</th>
+                                    <th>Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in quota_status.quota_items %}
+                                <tr class="pos-item-row">
+                                    <td>
+                                        <strong>{{ item.name }}</strong>
+                                        <small class="d-block text-muted">Per {{ item.unit }}</small>
+                                        {% if item.allocation_basis == 'PER_PERSON' %}
+                                            <span class="badge bg-primary small mt-1">Per Person ({{ item.quantity_per_unit }} {{ item.unit }}/head)</span>
+                                        {% else %}
+                                            <span class="badge bg-info text-dark small mt-1">Per Card ({{ item.quantity_per_unit }} {{ item.unit }}/card)</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if item.unit_price == 0 %}
+                                            <span class="badge bg-success">₹0.00 (FREE)</span>
+                                        {% else %}
+                                            ₹{{ "%.2f"|format(item.unit_price) }}
+                                        {% endif %}
+                                    </td>
+                                    <td><strong>{{ item.entitled_qty }}</strong> {{ item.unit }}</td>
+                                    <td><span class="text-secondary fw-bold">{{ item.claimed_qty }} {{ item.unit }}</span></td>
+                                    <td>
+                                        <span class="fw-bold {% if item.remaining_qty > 0 %}text-primary{% else %}text-muted{% endif %}">
+                                            {{ item.remaining_qty }} {{ item.unit }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="input-group input-group-sm">
+                                            <input type="number" 
+                                                   step="0.5" 
+                                                   min="0" 
+                                                   max="{{ item.remaining_qty }}"
+                                                   name="qty_{{ item.commodity_id }}" 
+                                                   value="{{ item.remaining_qty if item.remaining_qty > 0 else 0 }}"
+                                                   data-id="{{ item.commodity_id }}"
+                                                   data-price="{{ item.unit_price }}"
+                                                   data-max="{{ item.remaining_qty }}"
+                                                   data-name="{{ item.name }}"
+                                                   data-unit="{{ item.unit }}"
+                                                   class="form-control text-center fw-bold pos-qty-input {% if item.remaining_qty == 0 %}bg-light text-muted{% endif %}"
+                                                   {% if item.remaining_qty == 0 %}readonly{% endif %}>
+                                            <span class="input-group-text">{{ item.unit }}</span>
+                                        </div>
+                                    </td>
+                                    <td class="text-end fw-bold" id="subtotal_{{ item.commodity_id }}">
+                                        ₹0.00
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot class="table-light">
+                                <tr>
+                                    <th colspan="6" class="text-end fs-5">Total Subsidized Bill Amount:</th>
+                                    <th class="text-end fs-4 text-success" id="posGrandTotal">₹0.00</th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    <!-- Authentication & Payment Options -->
+                    <div class="row g-3 mb-4 bg-light p-3 rounded-3 border">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold"><i class="bi bi-fingerprint me-1 text-primary"></i>Citizen Authentication Method</label>
+                            <select name="auth_mode" class="form-select" required>
+                                <option value="Biometric Aadhaar Fingerprint (Simulated Verification Passed)">
+                                    ✓ Biometric Fingerprint (Aadhaar Linked - Verified)
+                                </option>
+                                <option value="Aadhaar OTP (Simulated - Verified)">
+                                    ✓ Mobile OTP Authentication (OTP Verified)
+                                </option>
+                                <option value="Manual Emergency Override (Dealer Authorized)">
+                                    ⚠️ Manual Inspector/Dealer Override
+                                </option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold"><i class="bi bi-cash-coin me-1 text-success"></i>Payment Mode</label>
+                            <select name="payment_mode" class="form-select" required>
+                                <option value="Cash / Direct Subsidy">Cash / Direct Subsidy</option>
+                                <option value="UPI / Bharat QR">UPI / Bharat QR</option>
+                                <option value="Direct Benefit Transfer (DBT Zero Cash)">DBT Zero Cash / Free Scheme</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Action Button -->
+                    <div class="d-grid gap-2">
+                        <button type="submit" id="btnSubmitSale" class="btn btn-success btn-lg fw-bold py-3">
+                            <i class="bi bi-printer-fill me-2"></i> Record Distribution & Generate e-Receipt
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        {% elif card_search %}
+        <div class="alert alert-warning text-center py-4">
+            <i class="bi bi-exclamation-triangle fs-2 d-block mb-2 text-warning"></i>
+            <h5>Card Not Found</h5>
+            <p class="mb-0">No active cardholder matched your query "<strong>{{ card_search }}</strong>".</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Right Sidebar: Live Shop Stock & Low Stock Warnings -->
+    <div class="col-lg-4">
+        <div class="card card-pds mb-4">
+            <div class="card-header card-header-pds d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-boxes me-2 text-primary"></i>Shop Stock Status</span>
+                <span class="badge bg-secondary">Current Inventory</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for stk in stock_status %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center p-3">
+                        <div>
+                            <strong class="d-block">{{ stk.commodity_name }}</strong>
+                            <small class="text-muted">Threshold: {{ stk.min_threshold }} {{ stk.unit }}</small>
+                            <div class="mt-1">
+                                <span class="badge {{ stk.badge_class }} small">
+                                    <i class="bi bi-clock-history me-1"></i>{% if stk.days_to_depletion_num is not none and stk.days_to_depletion_num > 0 %}Est. ~{{ stk.days_to_depletion_num }} days left{% else %}{{ stk.status }}{% endif %}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <h5 class="mb-0 fw-bold {% if stk.is_low_stock %}text-danger{% else %}text-dark{% endif %}">
+                                {{ stk.current_stock }} <small class="fs-6">{{ stk.unit }}</small>
+                            </h5>
+                            {% if stk.is_low_stock %}
+                                <span class="badge bg-danger">Low Stock Alert</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Removed Cheat Sheet for simpler UI -->
+    </div>
+</div>
+{% endblock %}

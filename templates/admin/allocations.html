@@ -1,0 +1,277 @@
+{% extends "base.html" %}
+
+{% block title %}Grain Allocations & Entitlement Rules - RationSmart{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold text-primary mb-1"><i class="bi bi-truck me-2"></i>PDS Grain Allocation & Configurable Entitlement Rules</h2>
+        <p class="text-muted mb-0">Manage district godown dispatches and monthly quota entitlement rules per card type</p>
+    </div>
+    <div>
+        <button class="btn btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#addRuleModal">
+            <i class="bi bi-gear-fill me-1"></i> Configure Entitlement Rule
+        </button>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addAllocationModal">
+            <i class="bi bi-plus-circle me-1"></i> New Godown Allocation
+        </button>
+    </div>
+</div>
+
+<!-- SECTION 1: Configurable Entitlement Rules -->
+<div class="card card-pds mb-4 shadow-sm">
+    <div class="card-header bg-light py-3 d-flex justify-content-between align-items-center">
+        <span class="fw-bold text-dark fs-5">
+            <i class="bi bi-sliders me-2 text-primary"></i>Configurable Entitlement Allocation Rules
+        </span>
+        <span class="badge bg-secondary">Tamil Nadu PDS Scheme Rules</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="alert alert-info py-2 px-3 m-3 mb-2 small">
+            <i class="bi bi-info-circle me-1"></i><strong>Scheme Note:</strong> Distribution quantities are configured according to the applicable Tamil Nadu PDS/NFSA scheme rules. Commodity/card-specific values should be updated when official government rules change.
+        </div>
+        {% if allocation_rules %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Card Category</th>
+                        <th>Commodity</th>
+                        <th>Allocation Basis</th>
+                        <th>Quota Rate / Unit</th>
+                        <th>Status</th>
+                        <th>Last Updated</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in allocation_rules %}
+                    <tr>
+                        <td>
+                            <span class="fw-bold fs-6">
+                                {% if r.card_type == 'PHH' %}
+                                    <span class="badge bg-danger text-white">PHH - Priority Household</span>
+                                {% elif r.card_type == 'AAY' %}
+                                    <span class="badge bg-warning text-dark">AAY - Antyodaya Anna Yojana</span>
+                                {% elif r.card_type == 'NPHH' %}
+                                    <span class="badge bg-primary text-white">NPHH - Non-Priority Household</span>
+                                {% elif r.card_type == 'NPHH-S' %}
+                                    <span class="badge bg-info text-dark">NPHH-S - Non-Priority Sugar</span>
+                                {% elif r.card_type == 'AY' %}
+                                    <span class="badge bg-success text-white">AY - Annapurna Yojana</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ r.card_type }}</span>
+                                {% endif %}
+                            </span>
+                        </td>
+                        <td><strong>{{ r.commodity.name if r.commodity else r.commodity_id }}</strong></td>
+                        <td>
+                            {% if r.allocation_basis == 'PER_PERSON' %}
+                                <span class="badge bg-primary px-3 py-2"><i class="bi bi-person me-1"></i>PER_PERSON</span>
+                            {% else %}
+                                <span class="badge bg-info text-dark px-3 py-2"><i class="bi bi-card-text me-1"></i>PER_CARD</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <strong class="fs-6 text-dark">{{ r.quantity_per_unit }} {{ r.unit }}</strong>
+                            <small class="text-muted d-block">
+                                {% if r.allocation_basis == 'PER_PERSON' %}
+                                    per family member / month
+                                {% else %}
+                                    flat quota per card / month
+                                {% endif %}
+                            </small>
+                        </td>
+                        <td>
+                            {% if r.is_active %}
+                                <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Active</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td><small class="text-muted">{{ r.updated_at.strftime('%d-%b-%Y %I:%M %p') if r.updated_at else '-' }}</small></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted text-center my-4">No allocation rules found in database.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- SECTION 2: Central Godown Consignments Table -->
+<div class="card card-pds shadow-sm">
+    <div class="card-header card-header-pds d-flex justify-content-between align-items-center">
+        <span class="fw-bold fs-5"><i class="bi bi-box-seam me-2 text-primary"></i>Central Allocation Consignments ({{ allocations|length }})</span>
+        <div class="w-25">
+            <input type="text" class="form-control form-control-sm" placeholder="Search allocations..." data-table-search="allocTable">
+        </div>
+    </div>
+    <div class="card-body p-0">
+        {% if allocations %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" id="allocTable">
+                <thead class="table-light">
+                    <tr>
+                        <th>Consignment Code</th>
+                        <th>Allocation Month</th>
+                        <th>Destination FPS Shop</th>
+                        <th>Commodity</th>
+                        <th>Allocated Qty</th>
+                        <th>Dispatch Date</th>
+                        <th>Status</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for a in allocations %}
+                    <tr>
+                        <td><code>{{ a.allocation_code }}</code></td>
+                        <td><span class="badge bg-light text-dark border">{{ a.allocation_month }}</span></td>
+                        <td>
+                            <strong>{{ a.shop.shop_code }}</strong>
+                            <small class="d-block text-muted">{{ a.shop.shop_name }}</small>
+                        </td>
+                        <td><strong>{{ a.commodity.name }}</strong></td>
+                        <td><strong class="text-success">{{ a.allocated_qty }} {{ a.commodity.unit }}</strong></td>
+                        <td>{{ a.dispatch_date.strftime('%d-%b-%Y') }}</td>
+                        <td>
+                            <span class="badge {% if a.status == 'Received' %}bg-success{% elif a.status == 'Dispatched' %}bg-primary{% else %}bg-warning text-dark{% endif %}">
+                                {{ a.status }}
+                            </span>
+                        </td>
+                        <td><small class="text-muted">{{ a.notes or '-' }}</small></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted text-center my-4">No grain allocations recorded.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Configure Entitlement Rule Modal -->
+<div class="modal fade" id="addRuleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ url_for('admin_allocation_rules') }}" method="POST">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-gear-fill me-1 text-primary"></i> Configure Entitlement Allocation Rule</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Card Type / Scheme</label>
+                            <select name="card_type" class="form-select" required>
+                                <option value="PHH">PHH - Priority Household</option>
+                                <option value="AAY">AAY - Antyodaya Anna Yojana</option>
+                                <option value="NPHH">NPHH - Non-Priority Household</option>
+                                <option value="NPHH-S">NPHH-S - Non-Priority Sugar</option>
+                                <option value="AY">AY - Annapurna Yojana</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Commodity</label>
+                            <select name="commodity_id" class="form-select" required>
+                                {% for c in commodities %}
+                                    <option value="{{ c.id }}">{{ c.name }} ({{ c.unit }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Allocation Basis</label>
+                            <select name="allocation_basis" class="form-select" required>
+                                <option value="PER_PERSON">PER_PERSON (Multiply by Family Members)</option>
+                                <option value="PER_CARD">PER_CARD (Flat quota per card)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Quantity Per Unit</label>
+                            <input type="number" step="0.1" min="0" name="quantity_per_unit" class="form-control" placeholder="e.g. 5.0" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Unit</label>
+                            <select name="unit" class="form-select" required>
+                                <option value="kg">kg</option>
+                                <option value="liter">liter</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Rule Status</label>
+                            <select name="is_active" class="form-select">
+                                <option value="1">Active</option>
+                                <option value="0">Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary fw-bold">Save Entitlement Rule</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add Allocation Modal -->
+<div class="modal fade" id="addAllocationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ url_for('admin_allocations') }}" method="POST">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-truck me-1"></i> Dispatch Grain Allocation</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label fw-bold">Destination Fair Price Shop</label>
+                            <select name="shop_id" class="form-select" required>
+                                {% for s in shops %}
+                                    <option value="{{ s.id }}">{{ s.shop_code }} - {{ s.shop_name }} ({{ s.ward }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Commodity</label>
+                            <select name="commodity_id" class="form-select" required>
+                                {% for c in commodities %}
+                                    <option value="{{ c.id }}">{{ c.name }} ({{ c.unit }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Quantity (kg / L)</label>
+                            <input type="number" step="10" min="10" name="allocated_qty" class="form-control" placeholder="e.g. 500" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Allocation Month</label>
+                            <input type="month" name="allocation_month" value="{{ current_period }}" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Delivery Status</label>
+                            <select name="status" class="form-select">
+                                <option value="Received">Received (Instantly credit shop stock)</option>
+                                <option value="Dispatched">Dispatched / In-Transit</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold">Dispatch Notes / Vehicle No.</label>
+                            <input type="text" name="notes" class="form-control" placeholder="e.g. Central Godown Batch #4A, Truck MH-04-1234">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary fw-bold">Record & Dispatch</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

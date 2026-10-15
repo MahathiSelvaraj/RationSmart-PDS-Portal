@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Digital Ration Shop{% endblock %}
+
+{% block content %}
+<!-- Hero Banner -->
+<div class="hero-banner p-4 p-md-5">
+    <div class="row align-items-center">
+        <div class="col-lg-7 mb-4 mb-lg-0">
+            <span class="badge bg-warning text-dark px-3 py-2 fw-bold mb-3">
+                <i class="bi bi-patch-check-fill me-1"></i> Public Distribution System (PDS) Portal
+            </span>
+            <h1 class="display-5 fw-bold mb-3" style="color: #111827;">Digital Ration Shop</h1>
+            <p class="lead mb-4" style="color: #4B5563;">
+                Digital Ration Shop Sales Recording and PDS Grain Allocation Tracking Portal.
+            </p>
+            
+            <!-- Quick Beneficiary Card Search Widget -->
+            <form action="{{ url_for('dealer_pos') }}" method="GET" class="p-2 bg-white rounded-3 shadow-lg d-flex flex-column flex-sm-row gap-2 border">
+                <div class="input-group">
+                    <span class="input-group-text bg-transparent border-0"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" name="card_number" class="form-control border-0 shadow-none" placeholder="Enter Ration Card No. (e.g. RC-AAY-1001 or RC-PHH-2001)" required>
+                </div>
+                <button type="submit" class="btn btn-warning fw-bold px-4 py-2 text-nowrap">
+                    <i class="bi bi-arrow-right-circle me-1"></i> Check Entitlement
+                </button>
+            </form>
+            <div class="mt-2 small" style="color: #4B5563;">
+                <span><i class="bi bi-info-circle me-1"></i> Sample cards: <code class="text-primary fw-bold">RC-AAY-1001</code>, <code class="text-primary fw-bold">RC-PHH-2001</code>, <code class="text-primary fw-bold">RC-AY-4001</code></span>
+            </div>
+        </div>
+        <div class="col-lg-5 text-center">
+            <div class="card bg-white border p-4 rounded-4 shadow-sm">
+                <h5 class="fw-bold mb-3" style="color: #111827;"><i class="bi bi-cpu me-2 text-warning"></i>Portal Quick Access</h5>
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('dealer_pos') }}" class="btn btn-light border text-start py-2">
+                        <i class="bi bi-cart3 text-success me-2"></i> <strong style="color: #111827;">Sales / Distribution POS</strong> <small class="text-muted d-block ms-4">Record ration sales & verify quota</small>
+                    </a>
+                    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-light border text-start py-2">
+                        <i class="bi bi-graph-up-arrow text-danger me-2"></i> <strong style="color: #111827;">Dashboard</strong> <small class="text-muted d-block ms-4">Stock monitoring & system overview</small>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Key Stat Counters -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="stat-card stat-primary">
+            <div class="stat-icon text-primary"><i class="bi bi-shop"></i></div>
+            <div>
+                <div class="stat-value">{{ total_shops }}</div>
+                <div class="stat-label">Active Fair Price Shops</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card stat-success">
+            <div class="stat-icon text-success"><i class="bi bi-people"></i></div>
+            <div>
+                <div class="stat-value">{{ total_cards }}</div>
+                <div class="stat-label">Enrolled Beneficiary Cards</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card stat-warning">
+            <div class="stat-icon text-warning"><i class="bi bi-basket2"></i></div>
+            <div>
+                <div class="stat-value">{{ total_grains }} <small class="fs-6 text-muted">kg/L</small></div>
+                <div class="stat-label">{{ current_month_str }} Distributed</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Card Categories Breakdown & PDS Subsidized Rates -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-7">
+        <div class="card card-pds h-100">
+            <div class="card-header card-header-pds d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-credit-card-2-front me-2 text-primary"></i>Ration Card Categories & Entitlement Norms</span>
+                <span class="badge bg-secondary">NFSA Guidelines</span>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Category</th>
+                                <th>Color Tag</th>
+                                <th>Target Group</th>
+                                <th>Monthly Quota Scale</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>AAY</strong></td>
+                                <td><span class="badge badge-aay">Yellow Card</span></td>
+                                <td>Antyodaya (Poorest of poor)</td>
+                                <td><strong>35 kg</strong> flat grains (20kg Rice + 15kg Wheat) + 1kg Sugar + 1L Oil</td>
+                            </tr>
+                            <tr>
+                                <td><strong>PHH</strong></td>
+                                <td><span class="badge badge-phh">Pink Card</span></td>
+                                <td>Priority Households (BPL)</td>
+                                <td><strong>5 kg / member</strong> (3kg Rice + 2kg Wheat per head) + 1kg Sugar</td>
+                            </tr>
+                            <tr>
+                                <td><strong>NPHH</strong></td>
+                                <td><span class="badge badge-nphh">White/Blue</span></td>
+                                <td>Non-Priority Households (APL)</td>
+                                <td><strong>15 kg</strong> grains (10kg Rice + 5kg Wheat) + 1kg Sugar</td>
+                            </tr>
+                            <tr>
+                                <td><strong>AY</strong></td>
+                                <td><span class="badge badge-ay">Green Card</span></td>
+                                <td>Annapurna (Indigent Seniors)</td>
+                                <td><strong>10 kg Free</strong> grains (7kg Rice + 3kg Wheat @ ₹0.00)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Subsidized Commodities & Fixed Prices -->
+    <div class="col-lg-5">
+        <div class="card card-pds h-100">
+            <div class="card-header card-header-pds d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-tag-fill me-2 text-success"></i>Subsidized PDS Commodities</span>
+                <span class="badge bg-success">Govt. Subsidized Rates</span>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    {% for comm in commodities %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center p-3">
+                        <div>
+                            <strong class="d-block">{{ comm.name }}</strong>
+                            <small class="text-muted">Standard allocation unit: per {{ comm.unit }}</small>
+                        </div>
+                        <div>
+                            <span class="badge bg-primary fs-6 px-3 py-2">
+                                {% if comm.price_per_unit == 0 %}
+                                    FREE (₹0.00)
+                                {% else %}
+                                    ₹{{ "%.2f"|format(comm.price_per_unit) }} / {{ comm.unit }}
+                                {% endif %}
+                            </span>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Fair Price Shops Directory -->
+<div class="card card-pds">
+    <div class="card-header card-header-pds d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-geo-alt-fill me-2 text-danger"></i>Active Fair Price Shops (FPS) in District</span>
+        <a href="{{ url_for('admin_shops') }}" class="btn btn-outline-primary btn-sm">View All Shops</a>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            {% for shop in shops %}
+            <div class="col-md-6 col-lg-3">
+                <div class="border rounded-3 p-3 h-100 bg-light">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="badge bg-dark">{{ shop.shop_code }}</span>
+                        <span class="badge bg-success">{{ shop.status }}</span>
+                    </div>
+                    <h6 class="fw-bold mb-1">{{ shop.shop_name }}</h6>
+                    <p class="small text-muted mb-2"><i class="bi bi-person me-1"></i>Dealer: {{ shop.dealer_name }}</p>
+                    <p class="small text-muted mb-2"><i class="bi bi-geo-alt me-1"></i>{{ shop.ward }}, {{ shop.address }}</p>
+                    <p class="small text-muted mb-0"><i class="bi bi-telephone me-1"></i>{{ shop.contact_no }}</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

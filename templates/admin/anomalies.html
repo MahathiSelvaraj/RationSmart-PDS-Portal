@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{% block title %}Transaction Alerts & Vigilance Radar - Digital Ration Shop{% endblock %}
+
+{% block content %}
+<div class="py-3">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold text-danger mb-1"><i class="bi bi-shield-exclamation me-2"></i>Transaction Alerts & Vigilance Radar</h2>
+            <p class="text-muted mb-0">Rule-based monitoring of suspicious transactions, unusual quantities, short-period repetitions, and allocation anomalies</p>
+        </div>
+    </div>
+
+    <!-- Severity & Status Filters -->
+    <div class="card card-pds mb-4 shadow-sm">
+        <div class="card-body">
+            <form action="{{ url_for('admin_anomalies') }}" method="GET" class="row g-3 align-items-center">
+                <div class="col-md-5">
+                    <label class="form-label fw-bold">Filter by Severity Level</label>
+                    <select name="severity" class="form-select">
+                        <option value="">All Severity Levels</option>
+                        <option value="High" {% if severity_filter == 'High' %}selected{% endif %}>🔴 High Severity (Over-Quota / Deficit)</option>
+                        <option value="Medium" {% if severity_filter == 'Medium' %}selected{% endif %}>🟡 Medium Severity (Suspicious Activity / Bulk)</option>
+                        <option value="Low" {% if severity_filter == 'Low' %}selected{% endif %}>🔵 Low Severity (Off-Hours Flag)</option>
+                    </select>
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label fw-bold">Filter by Alert Status</label>
+                    <select name="status" class="form-select">
+                        <option value="">All Alert Statuses</option>
+                        <option value="Flagged" {% if status_filter == 'Flagged' %}selected{% endif %}>Flagged (Unreviewed)</option>
+                        <option value="Reviewed" {% if status_filter == 'Reviewed' %}selected{% endif %}>Reviewed</option>
+                        <option value="Resolved" {% if status_filter == 'Resolved' %}selected{% endif %}>Resolved / Audited</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex gap-2 align-self-end">
+                    <button type="submit" class="btn btn-danger w-100 fw-bold"><i class="bi bi-funnel me-1"></i> Filter</button>
+                    <a href="{{ url_for('admin_anomalies') }}" class="btn btn-outline-secondary" title="Reset Filters"><i class="bi bi-arrow-counterclockwise"></i></a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Anomaly Logs List -->
+    <div class="card card-pds shadow-sm">
+        <div class="card-header bg-light py-3 d-flex justify-content-between align-items-center">
+            <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-list-stars me-2 text-danger"></i>Transaction Alert Logs ({{ anomalies|length }})</h5>
+            <span class="badge bg-secondary">System Monitored</span>
+        </div>
+        <div class="card-body p-0">
+            {% if anomalies %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Severity</th>
+                            <th>Bill / Card / Customer</th>
+                            <th>Shop & Dealer</th>
+                            <th>Date / Time</th>
+                            <th>Reason for Flag</th>
+                            <th>Status</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for a in anomalies %}
+                        <tr>
+                            <td>
+                                <span class="badge {% if a.severity == 'High' %}bg-danger{% elif a.severity == 'Medium' %}bg-warning text-dark{% else %}bg-info text-dark{% endif %} px-2 py-1">
+                                    {{ a.severity }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if a.transaction %}
+                                    <strong class="text-primary d-block">{{ a.transaction.bill_number }}</strong>
+                                {% endif %}
+                                {% if a.ration_card %}
+                                    <span class="fw-semibold d-block small">Card: <code>{{ a.ration_card.card_number }}</code></span>
+                                    <small class="text-muted">{{ a.ration_card.head_of_family }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if a.shop %}
+                                    <strong class="d-block text-dark">{{ a.shop.shop_code }}</strong>
+                                    <small class="text-muted d-block">{{ a.shop.dealer_name }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <small class="text-dark d-block fw-semibold">{{ a.detected_at.strftime('%d-%b-%Y') }}</small>
+                                <small class="text-muted">{{ a.detected_at.strftime('%I:%M %p') }}</small>
+                            </td>
+                            <td>
+                                <p class="mb-1 text-dark small fw-semibold">
+                                    <i class="bi bi-exclamation-circle-fill me-1 text-warning"></i> {{ a.description }}
+                                </p>
+                                {% if a.transaction and a.transaction.items %}
+                                    <div class="small text-secondary">
+                                        <strong>Grain(s):</strong>
+                                        {% for item in a.transaction.items %}
+                                            <span class="badge bg-light text-dark border me-1">{{ item.commodity.name }}: {{ item.quantity }} {{ item.commodity.unit }}</span>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                {% if a.resolution_notes %}
+                                    <div class="small text-success mt-1">
+                                        <i class="bi bi-check-circle me-1"></i><strong>Inspector Notes:</strong> {{ a.resolution_notes }}
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if a.status == 'Flagged' %}
+                                    <span class="badge bg-danger text-white border px-2 py-1">
+                                        <i class="bi bi-flag-fill me-1"></i> Flagged
+                                    </span>
+                                {% elif a.status == 'Reviewed' %}
+                                    <span class="badge bg-warning text-dark border px-2 py-1">
+                                        <i class="bi bi-eye-fill me-1"></i> Reviewed
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-success text-white border px-2 py-1">
+                                        <i class="bi bi-check-all me-1"></i> {{ a.status }}
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <button class="btn btn-outline-dark btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#resolveAnomalyModal{{ a.id }}">
+                                    <i class="bi bi-pencil-square me-1"></i> Review
+                                </button>
+
+                                <!-- Resolution Modal -->
+                                <div class="modal fade text-start" id="resolveAnomalyModal{{ a.id }}" tabindex="-1">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <form action="{{ url_for('resolve_anomaly', anomaly_id=a.id) }}" method="POST">
+                                                <div class="modal-header bg-dark text-white">
+                                                    <h5 class="modal-title fw-bold">Review Alert: #{{ a.id }} - {{ a.anomaly_type }}</h5>
+                                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <p class="mb-2"><strong>Reason for Flag:</strong> {{ a.description }}</p>
+                                                    <div class="mb-3">
+                                                        <label class="form-label fw-bold">Update Status</label>
+                                                        <select name="status" class="form-select" required>
+                                                            <option value="Reviewed" {% if a.status == 'Reviewed' %}selected{% endif %}>Mark as Reviewed</option>
+                                                            <option value="Resolved" {% if a.status == 'Resolved' %}selected{% endif %}>Mark as Resolved / Audited</option>
+                                                            <option value="Dismissed" {% if a.status == 'Dismissed' %}selected{% endif %}>Dismiss (False Positive)</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label class="form-label fw-bold">Inspector Investigation Notes</label>
+                                                        <textarea name="resolution_notes" rows="3" class="form-control" placeholder="Provide audit findings or notes..." required>{{ a.resolution_notes or '' }}</textarea>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                    <button type="submit" class="btn btn-success fw-bold">Save Review</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5 text-success">
+                <i class="bi bi-shield-check fs-1 d-block mb-2"></i>
+                <p class="mb-0">No transaction alerts found matching current filters.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

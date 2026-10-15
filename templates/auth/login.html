@@ -1,0 +1,610 @@
+{% extends "base.html" %}
+
+{% block title %}Sign In - Digital Ration Shop{% endblock %}
+
+{% block head %}
+<style>
+/* ==========================================================================
+   Public Distribution System - Formal Civil Service Theme
+   Visual Identity: Warm Ivory, Forest Green, Muted Gold, Dark Charcoal
+   ========================================================================== */
+
+body {
+    background-color: #F8F7F2 !important;
+}
+
+.login-portal-wrapper {
+    font-family: 'Times New Roman', Times, serif;
+    background-color: #F8F7F2;
+    color: #202820;
+    padding: 2rem 0 3rem 0;
+    min-height: calc(100vh - 160px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.login-split-frame {
+    background-color: #FFFFFF;
+    border: 1px solid #D8D5CC;
+    border-radius: 6px;
+    box-shadow: 0 4px 24px rgba(32, 40, 32, 0.07);
+    overflow: hidden;
+    max-width: 1040px;
+    width: 100%;
+}
+
+/* --- Left Section (Brand & Public Service Identity) --- */
+.login-visual-panel {
+    background-color: #F2EFE7;
+    border-right: 1px solid #D8D5CC;
+    padding: 3.5rem 3rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.pds-gov-label {
+    font-size: 0.78rem;
+    letter-spacing: 0.18em;
+    font-weight: 700;
+    color: #C5A15A;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 0.75rem;
+}
+
+.portal-main-heading {
+    font-size: 2.25rem;
+    font-weight: 700;
+    color: #244A36;
+    line-height: 1.2;
+    margin-bottom: 1.15rem;
+}
+
+.portal-tagline {
+    color: #626B64;
+    font-size: 1.08rem;
+    line-height: 1.6;
+    margin-bottom: 2.5rem;
+}
+
+/* Abstract Tasteful Grain Motif */
+.grain-motif-container {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    padding: 1.5rem;
+    background-color: #FFFFFF;
+    border: 1px solid #E2DFD7;
+    border-radius: 4px;
+    margin-bottom: 2rem;
+}
+
+.grain-motif-svg {
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+}
+
+.grain-motif-text {
+    font-size: 0.92rem;
+    color: #202820;
+    line-height: 1.45;
+}
+
+.portal-trust-pillars {
+    border-top: 1px solid #D8D5CC;
+    padding-top: 1.5rem;
+    margin-top: auto;
+}
+
+.trust-pillar-item {
+    display: flex;
+    align-items: center;
+    font-size: 0.92rem;
+    color: #202820;
+    margin-bottom: 0.65rem;
+}
+
+.trust-pillar-item:last-child {
+    margin-bottom: 0;
+}
+
+.trust-pillar-item i {
+    color: #244A36;
+    margin-right: 0.75rem;
+    font-size: 1rem;
+}
+
+/* --- Right Section (Clean Access & Role Selector) --- */
+.login-access-panel {
+    background-color: #FFFFFF;
+    padding: 3.5rem 3.25rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.access-heading {
+    font-size: 1.95rem;
+    font-weight: 700;
+    color: #202820;
+    margin-bottom: 0.35rem;
+}
+
+.access-subheading {
+    font-size: 0.96rem;
+    color: #626B64;
+    margin-bottom: 1.75rem;
+}
+
+/* Role Selector Tabs */
+.role-switch-container {
+    display: flex;
+    background-color: #F8F7F2;
+    border: 1px solid #D8D5CC;
+    border-radius: 5px;
+    padding: 4px;
+    margin-bottom: 1.75rem;
+    gap: 4px;
+}
+
+.role-switch-btn {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 0.65rem 0.5rem;
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 0.98rem;
+    font-weight: 700;
+    color: #626B64;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s ease-in-out;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    outline: none;
+}
+
+.role-switch-btn:hover {
+    color: #202820;
+    background-color: #EFECE3;
+}
+
+.role-switch-btn.active {
+    background-color: #244A36;
+    color: #FFFFFF;
+    box-shadow: 0 1px 3px rgba(36, 74, 54, 0.25);
+}
+
+.role-switch-btn.active .role-icon {
+    color: #C5A15A;
+}
+
+.role-icon {
+    font-size: 1rem;
+    color: #626B64;
+    transition: color 0.15s ease-in-out;
+}
+
+/* Field Group & Inputs */
+.login-field-group {
+    margin-bottom: 1.35rem;
+}
+
+.login-field-label {
+    display: block;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #202820;
+    margin-bottom: 0.45rem;
+}
+
+.login-text-input {
+    width: 100%;
+    padding: 0.78rem 1rem;
+    font-family: inherit;
+    font-size: 1rem;
+    color: #202820;
+    background-color: #FFFFFF;
+    border: 1px solid #D8D5CC;
+    border-radius: 4px;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.login-text-input:focus {
+    border-color: #244A36;
+    outline: 0;
+    box-shadow: 0 0 0 3px rgba(36, 74, 54, 0.15);
+}
+
+.login-text-input::placeholder {
+    color: #9A9E9A;
+    font-style: italic;
+}
+
+/* Password Input with Visibility Toggle */
+.password-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.password-input-wrapper .login-text-input {
+    padding-right: 2.85rem;
+}
+
+.password-toggle-trigger {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 2.85rem;
+    border: none;
+    background: transparent;
+    color: #626B64;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+    transition: color 0.15s ease-in-out;
+}
+
+.password-toggle-trigger:hover,
+.password-toggle-trigger:focus {
+    color: #244A36;
+    outline: none;
+}
+
+.field-context-help {
+    font-size: 0.83rem;
+    color: #626B64;
+    margin-top: 0.35rem;
+    line-height: 1.35;
+}
+
+/* Submit Action Button */
+.btn-portal-submit {
+    width: 100%;
+    background-color: #244A36;
+    color: #FFFFFF;
+    border: 1px solid #1B3829;
+    padding: 0.88rem;
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 1.12rem;
+    font-weight: 700;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    margin-top: 0.65rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.btn-portal-submit:hover {
+    background-color: #1B3829;
+    box-shadow: 0 4px 10px rgba(27, 56, 41, 0.22);
+}
+
+.btn-portal-submit:focus {
+    outline: 0;
+    box-shadow: 0 0 0 3px rgba(36, 74, 54, 0.3);
+}
+
+/* Clear Error / Validation Area */
+.login-alert-area {
+    margin-bottom: 1.25rem;
+}
+
+.login-portal-footer {
+    margin-top: 2rem;
+    text-align: center;
+    font-size: 0.85rem;
+    color: #626B64;
+    border-top: 1px solid #EAE8E0;
+    padding-top: 1rem;
+}
+
+/* Responsive Stacking */
+@media (max-width: 991.98px) {
+    .login-visual-panel {
+        padding: 2.75rem 2rem;
+        border-right: none;
+        border-bottom: 1px solid #D8D5CC;
+    }
+    .login-access-panel {
+        padding: 2.75rem 2rem;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="login-portal-wrapper">
+    <div class="login-split-frame">
+        <div class="row g-0">
+            <!-- Left Section: Visual & Public Service Mission -->
+            <div class="col-lg-5 login-visual-panel">
+                <div>
+                    <span class="pds-gov-label">PUBLIC DISTRIBUTION SYSTEM</span>
+                    
+                    <!-- Dignified Grain / Agriculture Stalk Motif -->
+                    <div class="mb-3">
+                        <svg class="grain-motif-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <path d="M24 44V10" stroke="#244A36" stroke-width="2.5" stroke-linecap="round"/>
+                            <path d="M24 10C24 10 27 5 24 2C21 5 24 10 24 10Z" fill="#C5A15A" stroke="#244A36" stroke-width="1.2"/>
+                            <path d="M24 17C27 13 32 14 33 18C30 19 26 18 24 17Z" fill="#C5A15A" stroke="#244A36" stroke-width="1.2"/>
+                            <path d="M24 17C21 13 16 14 15 18C18 19 22 18 24 17Z" fill="#C5A15A" stroke="#244A36" stroke-width="1.2"/>
+                            <path d="M24 25C28 21 34 22 35 26C31 28 26 26 24 25Z" fill="#C5A15A" stroke="#244A36" stroke-width="1.2"/>
+                            <path d="M24 25C20 21 14 22 13 26C17 28 22 26 24 25Z" fill="#C5A15A" stroke="#244A36" stroke-width="1.2"/>
+                            <path d="M24 33C28 29 34 30 35 34C31 36 26 34 24 33Z" fill="#C5A15A" stroke="#244A36" stroke-width="1.2"/>
+                            <path d="M24 33C20 29 14 30 13 34C17 36 22 34 24 33Z" fill="#C5A15A" stroke="#244A36" stroke-width="1.2"/>
+                        </svg>
+                    </div>
+
+                    <h1 class="portal-main-heading">Digital Ration Shop</h1>
+                    <p class="portal-tagline">
+                        Transparent distribution. Reliable records. Better public service.
+                    </p>
+
+                    <div class="grain-motif-container">
+                        <i class="bi bi-shield-check text-success fs-3"></i>
+                        <div class="grain-motif-text">
+                            <strong>Official Departmental Portal</strong><br>
+                            Civil Supplies & Essential Commodity Distribution Monitoring
+                        </div>
+                    </div>
+                </div>
+
+                <div class="portal-trust-pillars">
+                    <div class="trust-pillar-item">
+                        <i class="bi bi-patch-check-fill"></i>
+                        <span>Enforcing monthly NFSA & State grain entitlement scales</span>
+                    </div>
+                    <div class="trust-pillar-item">
+                        <i class="bi bi-receipt"></i>
+                        <span>Secure electronic cash-memos and real-time inventory ledger</span>
+                    </div>
+                    <div class="trust-pillar-item">
+                        <i class="bi bi-people-fill"></i>
+                        <span>Direct household verification and multi-shop oversight</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Section: Access Panel & Role Specific Fields -->
+            <div class="col-lg-7 login-access-panel">
+                <div>
+                    <h2 class="access-heading">Welcome Back</h2>
+                    <p class="access-subheading">Sign in to access your portal.</p>
+
+                    <!-- Role Switcher: Admin, Dealer, Customer -->
+                    <div class="role-switch-container" role="tablist" aria-label="Portal Role Selection">
+                        <button type="button" 
+                                class="role-switch-btn active" 
+                                id="tabCustomer" 
+                                data-role="customer"
+                                role="tab"
+                                aria-selected="true"
+                                aria-controls="loginForm">
+                            <i class="bi bi-person-badge role-icon"></i> Customer
+                        </button>
+                        <button type="button" 
+                                class="role-switch-btn" 
+                                id="tabDealer" 
+                                data-role="dealer"
+                                role="tab"
+                                aria-selected="false"
+                                aria-controls="loginForm">
+                            <i class="bi bi-shop role-icon"></i> Dealer
+                        </button>
+                        <button type="button" 
+                                class="role-switch-btn" 
+                                id="tabAdmin" 
+                                data-role="admin"
+                                role="tab"
+                                aria-selected="false"
+                                aria-controls="loginForm">
+                            <i class="bi bi-shield-lock role-icon"></i> Admin
+                        </button>
+                    </div>
+
+                    <!-- Flash / Error Display Area -->
+                    <div class="login-alert-area" id="alertContainer">
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                                {% for category, message in messages %}
+                                    <div class="alert alert-{{ category if category != 'message' else 'info' }} alert-dismissible fade show mb-3" role="alert">
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-exclamation-circle-fill me-2 fs-5"></i>
+                                            <div>{{ message }}</div>
+                                        </div>
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        {% endwith %}
+                    </div>
+
+                    <!-- Single Clean Form with Dynamic Fields for Selected Role -->
+                    <form action="{{ url_for('login', next=request.args.get('next')) if request.args.get('next') else url_for('login') }}" method="POST" id="loginForm" novalidate>
+                        <!-- Hidden field keeping track of selected role for server validation -->
+                        <input type="hidden" name="role" id="selectedRoleInput" value="customer">
+                        <input type="hidden" name="next" value="{{ request.args.get('next', '') }}">
+
+                        <!-- Role-Specific Identifier Field -->
+                        <div class="login-field-group">
+                            <label for="usernameInput" class="login-field-label" id="usernameFieldLabel">
+                                Ration Card Number
+                            </label>
+                            <input type="text" 
+                                   name="username" 
+                                   id="usernameInput" 
+                                   class="login-text-input" 
+                                   placeholder="Enter ration card number (e.g. RC-AAY-1001)" 
+                                   required 
+                                   autofocus 
+                                   autocomplete="username">
+                            <div class="field-context-help" id="usernameContextHelp">
+                                Enter your registered household Ration Card number.
+                            </div>
+                        </div>
+
+                        <!-- Password Field with Visibility Toggle -->
+                        <div class="login-field-group">
+                            <label for="passwordInput" class="login-field-label" id="passwordFieldLabel">
+                                Password
+                            </label>
+                            <div class="password-input-wrapper">
+                                <input type="password" 
+                                       name="password" 
+                                       id="passwordInput" 
+                                       class="login-text-input" 
+                                       placeholder="Enter your password" 
+                                       required 
+                                       autocomplete="current-password">
+                                <button type="button" 
+                                        class="password-toggle-trigger" 
+                                        id="togglePasswordBtn" 
+                                        aria-label="Toggle password visibility" 
+                                        tabindex="-1">
+                                    <i class="bi bi-eye" id="togglePasswordIcon"></i>
+                                </button>
+                            </div>
+                            <div class="field-context-help" id="passwordContextHelp">
+                                Secure individual account password.
+                            </div>
+                        </div>
+
+                        <!-- Prominent Forest-Green Sign In Button -->
+                        <button type="submit" class="btn-portal-submit" id="submitLoginBtn">
+                            <i class="bi bi-box-arrow-in-right"></i> Sign In
+                        </button>
+                    </form>
+
+                    <div class="login-portal-footer">
+                        Digital Ration Shop Management Portal &bull; Department of Civil Supplies
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tabCustomer = document.getElementById('tabCustomer');
+    const tabDealer = document.getElementById('tabDealer');
+    const tabAdmin = document.getElementById('tabAdmin');
+    const roleTabs = [tabCustomer, tabDealer, tabAdmin];
+
+    const selectedRoleInput = document.getElementById('selectedRoleInput');
+    const usernameFieldLabel = document.getElementById('usernameFieldLabel');
+    const usernameInput = document.getElementById('usernameInput');
+    const usernameContextHelp = document.getElementById('usernameContextHelp');
+    const passwordFieldLabel = document.getElementById('passwordFieldLabel');
+    const passwordInput = document.getElementById('passwordInput');
+    const passwordContextHelp = document.getElementById('passwordContextHelp');
+
+    const togglePasswordBtn = document.getElementById('togglePasswordBtn');
+    const togglePasswordIcon = document.getElementById('togglePasswordIcon');
+
+    // Role configurations
+    const roleConfigs = {
+        customer: {
+            label: 'Ration Card Number',
+            placeholder: 'Enter ration card number (e.g. RC-AAY-1001)',
+            help: 'Enter your registered household Ration Card number.',
+            pwdLabel: 'Customer Password',
+            pwdHelp: 'Your individual cardholder account password.'
+        },
+        dealer: {
+            label: 'Dealer Username',
+            placeholder: 'Enter dealer username (e.g. dealer1)',
+            help: 'Licensed Fair Price Shop operator username.',
+            pwdLabel: 'Dealer Password',
+            pwdHelp: 'Authorized shop operator account password.'
+        },
+        admin: {
+            label: 'Username',
+            placeholder: 'Enter admin username (e.g. admin)',
+            help: 'Departmental administrator or vigilance officer ID.',
+            pwdLabel: 'Password',
+            pwdHelp: 'Administrative portal master credentials.'
+        }
+    };
+
+    function applyRole(roleName) {
+        selectedRoleInput.value = roleName;
+
+        // Update Tab active classes & aria-selected
+        roleTabs.forEach(tab => {
+            const isTarget = tab.dataset.role === roleName;
+            tab.classList.toggle('active', isTarget);
+            tab.setAttribute('aria-selected', isTarget ? 'true' : 'false');
+        });
+
+        // Update form labels & placeholders
+        const config = roleConfigs[roleName];
+        if (config) {
+            usernameFieldLabel.textContent = config.label;
+            usernameInput.placeholder = config.placeholder;
+            usernameContextHelp.textContent = config.help;
+            passwordFieldLabel.textContent = config.pwdLabel;
+            passwordContextHelp.textContent = config.pwdHelp;
+        }
+
+        usernameInput.focus();
+    }
+
+    // Tab Click Listeners
+    tabCustomer.addEventListener('click', () => applyRole('customer'));
+    tabDealer.addEventListener('click', () => applyRole('dealer'));
+    tabAdmin.addEventListener('click', () => applyRole('admin'));
+
+    // Keyboard navigation for role tabs (Arrow Left / Right)
+    roleTabs.forEach((tab, index) => {
+        tab.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                e.preventDefault();
+                const nextIndex = (index + 1) % roleTabs.length;
+                roleTabs[nextIndex].click();
+            } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                const prevIndex = (index - 1 + roleTabs.length) % roleTabs.length;
+                roleTabs[prevIndex].click();
+            }
+        });
+    });
+
+    // Password Visibility Toggle
+    if (togglePasswordBtn && passwordInput && togglePasswordIcon) {
+        togglePasswordBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                togglePasswordIcon.classList.remove('bi-eye');
+                togglePasswordIcon.classList.add('bi-eye-slash');
+                togglePasswordBtn.setAttribute('aria-label', 'Hide password');
+            } else {
+                passwordInput.type = 'password';
+                togglePasswordIcon.classList.remove('bi-eye-slash');
+                togglePasswordIcon.classList.add('bi-eye');
+                togglePasswordBtn.setAttribute('aria-label', 'Show password');
+            }
+        });
+    }
+
+    // Default initialization
+    applyRole('customer');
+});
+</script>
+{% endblock %}

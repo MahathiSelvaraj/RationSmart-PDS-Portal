@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+
+{% block title %}Shop Details - {{ shop.shop_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{{ url_for('admin_shops') }}">Fair Price Shops</a></li>
+                <li class="breadcrumb-item active">{{ shop.shop_code }}</li>
+            </ol>
+        </nav>
+        <h2 class="fw-bold text-primary mb-0">
+            {{ shop.shop_name }} 
+            <span class="badge bg-dark fs-6 ms-2">{{ shop.shop_code }}</span>
+            <span class="badge {% if shop.status == 'Active' %}bg-success{% else %}bg-danger{% endif %} fs-6 ms-1">{{ shop.status }}</span>
+        </h2>
+    </div>
+    <div class="d-flex gap-2">
+        <form action="{{ url_for('toggle_shop_status', shop_id=shop.id) }}" method="POST">
+            <button type="submit" class="btn {% if shop.status == 'Active' %}btn-outline-danger{% else %}btn-outline-success{% endif %}">
+                <i class="bi bi-power me-1"></i> {% if shop.status == 'Active' %}Deactivate Shop{% else %}Activate Shop{% endif %}
+            </button>
+        </form>
+        <a href="{{ url_for('admin_shops') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Back to Shops List
+        </a>
+    </div>
+</div>
+
+<!-- Shop Info & Dealer Assignment Grid -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-8">
+        <div class="card card-pds h-100">
+            <div class="card-header card-header-pds d-flex justify-content-between align-items-center">
+                <span class="fw-bold"><i class="bi bi-info-circle me-2 text-primary"></i>Shop Details & Registration Profile</span>
+                <span class="badge bg-secondary">License: {{ shop.license_no }}</span>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <small class="text-muted d-block">Shop Name:</small>
+                        <strong class="fs-6">{{ shop.shop_name }}</strong>
+                    </div>
+                    <div class="col-sm-6">
+                        <small class="text-muted d-block">Shop Code:</small>
+                        <code>{{ shop.shop_code }}</code>
+                    </div>
+                    <div class="col-sm-6">
+                        <small class="text-muted d-block">License Number:</small>
+                        <strong>{{ shop.license_no }}</strong>
+                    </div>
+                    <div class="col-sm-6">
+                        <small class="text-muted d-block">Contact Phone:</small>
+                        <strong>{{ shop.contact_no }}</strong>
+                    </div>
+                    <div class="col-sm-6">
+                        <small class="text-muted d-block">Ward / Jurisdiction:</small>
+                        <span class="badge bg-light text-dark border">{{ shop.ward }}</span>
+                    </div>
+                    <div class="col-sm-6">
+                        <small class="text-muted d-block">District:</small>
+                        <strong>{{ shop.district }}</strong>
+                    </div>
+                    <div class="col-12">
+                        <small class="text-muted d-block">Physical Address:</small>
+                        <p class="mb-0 text-dark fw-medium">{{ shop.address }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dealer Assignment Card -->
+    <div class="col-lg-4">
+        <div class="card card-pds h-100 border-primary">
+            <div class="card-header card-header-pds bg-light">
+                <span class="fw-bold"><i class="bi bi-person-badge me-2 text-primary"></i>Assigned Dealer Management</span>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <small class="text-muted d-block">Current Assigned Dealer:</small>
+                    <h5 class="fw-bold text-primary mb-1">{{ assigned_dealer.full_name if assigned_dealer else shop.dealer_name }}</h5>
+                    {% if assigned_dealer %}
+                        <small class="text-muted d-block"><i class="bi bi-person me-1"></i>Username: <code>{{ assigned_dealer.username }}</code></small>
+                        <small class="text-muted d-block"><i class="bi bi-telephone me-1"></i>Phone: {{ assigned_dealer.phone or shop.contact_no }}</small>
+                    {% else %}
+                        <span class="badge bg-warning text-dark">No Account Assigned</span>
+                    {% endif %}
+                </div>
+
+                <hr>
+
+                <!-- Assign/Reassign Form -->
+                <form action="{{ url_for('assign_dealer_to_shop', shop_id=shop.id) }}" method="POST">
+                    <label class="form-label fw-bold small">Assign / Reassign Dealer Account:</label>
+                    <div class="input-group input-group-sm mb-2">
+                        <select name="dealer_user_id" class="form-select" required>
+                            <option value="">Select Dealer User...</option>
+                            {% for d in dealers %}
+                                <option value="{{ d.id }}" {% if assigned_dealer and assigned_dealer.id == d.id %}selected{% endif %}>
+                                    {{ d.full_name }} ({{ d.username }})
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="btn btn-primary">Assign</button>
+                    </div>
+                    <small class="text-muted d-block">Admin can reassign a dealer user to this shop.</small>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Key Stat Counters for Shop -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card card-pds text-center p-3">
+            <h6 class="text-muted text-uppercase small mb-1">Enrolled Cards</h6>
+            <h3 class="fw-bold text-primary mb-0">{{ shop.ration_cards|length }}</h3>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-pds text-center p-3">
+            <h6 class="text-muted text-uppercase small mb-1">Total Transactions</h6>
+            <h3 class="fw-bold text-success mb-0">{{ total_transactions }}</h3>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-pds text-center p-3">
+            <h6 class="text-muted text-uppercase small mb-1">Monthly Distribution</h6>
+            <h3 class="fw-bold text-info mb-0">{{ monthly_distributed }} <small class="fs-6">kg/L</small></h3>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-pds text-center p-3">
+            <h6 class="text-muted text-uppercase small mb-1">Stock Items Count</h6>
+            <h3 class="fw-bold text-secondary mb-0">{{ stocks|length }}</h3>
+        </div>
+    </div>
+</div>
+
+<!-- Shop Stock Matrix -->
+<div class="card card-pds mb-4">
+    <div class="card-header card-header-pds d-flex justify-content-between align-items-center">
+        <span class="fw-bold"><i class="bi bi-boxes me-2 text-primary"></i>Current Shop Inventory Stock</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Commodity</th>
+                        <th>Current Stock Balance</th>
+                        <th>Min Threshold Alert</th>
+                        <th>Avg Daily Outflow</th>
+                        <th>Depletion Forecast</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for stk in stocks %}
+                    <tr>
+                        <td><strong>{{ stk.commodity_name }}</strong></td>
+                        <td>
+                            <strong class="fs-6 {% if stk.is_low_stock %}text-danger{% else %}text-dark{% endif %}">
+                                {{ stk.current_stock }} {{ stk.unit }}
+                            </strong>
+                        </td>
+                        <td>{{ stk.min_threshold }} {{ stk.unit }}</td>
+                        <td>~{{ stk.daily_consumption_rate }} {{ stk.unit }}/day</td>
+                        <td><strong>{{ stk.estimated_days_remaining }} Day(s)</strong></td>
+                        <td>
+                            <span class="badge {{ stk.badge_class }} px-3 py-2">{{ stk.status }}</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Shop Transactions -->
+<div class="card card-pds">
+    <div class="card-header card-header-pds d-flex justify-content-between align-items-center">
+        <span class="fw-bold"><i class="bi bi-receipt me-2 text-primary"></i>Recent Transactions for {{ shop.shop_code }}</span>
+        <a href="{{ url_for('admin_transactions', shop_id=shop.id) }}" class="btn btn-outline-primary btn-sm">View All Shop Bills</a>
+    </div>
+    <div class="card-body p-0">
+        {% if transactions %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Bill No.</th>
+                        <th>Date & Time</th>
+                        <th>Customer / Ration Card</th>
+                        <th>Items Distributed</th>
+                        <th>Total Amount</th>
+                        <th>Receipt</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tx in transactions %}
+                    <tr>
+                        <td><code>{{ tx.bill_number }}</code></td>
+                        <td>{{ tx.transaction_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>
+                            <strong>{{ tx.ration_card.head_of_family }}</strong>
+                            <small class="d-block text-muted">Card: <code>{{ tx.ration_card.card_number }}</code></small>
+                        </td>
+                        <td>
+                            {% for item in tx.items %}
+                                <span class="badge bg-light text-dark border me-1">{{ item.commodity.name }}: {{ item.quantity }} {{ item.commodity.unit }}</span>
+                            {% endfor %}
+                        </td>
+                        <td class="fw-bold text-success">₹{{ "%.2f"|format(tx.total_amount) }}</td>
+                        <td>
+                            <a href="{{ url_for('view_receipt', transaction_id=tx.id) }}" target="_blank" class="btn btn-outline-primary btn-sm">
+                                <i class="bi bi-printer me-1"></i> Receipt
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted text-center py-4 mb-0">No transactions recorded for this shop yet.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
