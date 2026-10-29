@@ -1,55 +1,90 @@
 {% extends "base.html" %}
 
-{% block title %}Home - Digital Ration Shop{% endblock %}
+{% block title %}Home - Unified Public Distribution System{% endblock %}
 
 {% block content %}
-<!-- Hero Banner -->
-<div class="hero-banner p-4 p-md-5">
-    <div class="row align-items-center">
-        <div class="col-lg-7 mb-4 mb-lg-0">
-            <span class="badge bg-warning text-dark px-3 py-2 fw-bold mb-3">
-                <i class="bi bi-patch-check-fill me-1"></i> Public Distribution System (PDS) Portal
-            </span>
-            <h1 class="display-5 fw-bold mb-3" style="color: #111827;">Digital Ration Shop</h1>
-            <p class="lead mb-4" style="color: #4B5563;">
-                Digital Ration Shop Sales Recording and PDS Grain Allocation Tracking Portal.
-            </p>
-            
-            <!-- Quick Beneficiary Card Search Widget -->
-            <form action="{{ url_for('dealer_pos') }}" method="GET" class="p-2 bg-white rounded-3 shadow-lg d-flex flex-column flex-sm-row gap-2 border">
-                <div class="input-group">
-                    <span class="input-group-text bg-transparent border-0"><i class="bi bi-search text-muted"></i></span>
-                    <input type="text" name="card_number" class="form-control border-0 shadow-none" placeholder="Enter Ration Card No. (e.g. RC-AAY-1001 or RC-PHH-2001)" required>
+<!-- 1. Hero Government Portal Banner -->
+<div class="card card-pds mb-4" style="background: linear-gradient(135deg, #FAF8F2 0%, #F1ECE1 100%); border-left: 4px solid var(--pds-accent-gold);">
+    <div class="card-body p-4 p-md-5">
+        <div class="row align-items-center g-4">
+            <div class="col-lg-7">
+                <div class="d-inline-flex align-items-center gap-2 px-3 py-1 bg-white border rounded-pill shadow-xs mb-3">
+                    <span class="badge bg-warning text-dark py-0 px-2 fw-bold" style="font-size: 0.75rem;">NFSA PORTAL</span>
+                    <span class="small fw-semibold text-muted">National Food Security Act &bull; Transparency Initiative</span>
                 </div>
-                <button type="submit" class="btn btn-warning fw-bold px-4 py-2 text-nowrap">
-                    <i class="bi bi-arrow-right-circle me-1"></i> Check Entitlement
-                </button>
-            </form>
-            <div class="mt-2 small" style="color: #4B5563;">
-                <span><i class="bi bi-info-circle me-1"></i> Sample cards: <code class="text-primary fw-bold">RC-AAY-1001</code>, <code class="text-primary fw-bold">RC-PHH-2001</code>, <code class="text-primary fw-bold">RC-AY-4001</code></span>
+                <h1 class="display-6 fw-bold mb-3" style="color: var(--pds-primary); line-height: 1.2;">
+                    Digital Public Distribution System Portal
+                </h1>
+                <p class="lead mb-4" style="color: var(--pds-text-muted); font-size: 1.12rem; line-height: 1.6;">
+                    Providing end-to-end transparency, real-time grain allocation tracking, biometric cardholder verification, and electronic sales recording across Fair Price Shops.
+                </p>
+                
+                <!-- Quick Beneficiary Card Search Widget -->
+                <div class="card bg-white border p-2 shadow-sm rounded-3 mb-2" style="border-color: var(--pds-border-input) !important;">
+                    <form action="{{ url_for('dealer_pos') }}" method="GET" class="d-flex flex-column flex-sm-row gap-2">
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-0"><i class="bi bi-search text-primary"></i></span>
+                            <input type="text" name="card_number" class="form-control border-0 shadow-none" placeholder="Enter Ration Card No. (e.g. RC-AAY-1001 or RC-PHH-2001)" required style="font-size: 16px;">
+                        </div>
+                        <button type="submit" class="btn btn-primary px-4 py-2 text-nowrap fw-bold">
+                            <i class="bi bi-arrow-right-circle me-1"></i> Verify Quota
+                        </button>
+                    </form>
+                </div>
+                <div class="small text-muted d-flex align-items-center gap-2 flex-wrap">
+                    <span><i class="bi bi-info-circle text-primary me-1"></i> Quick Test Cards:</span>
+                    <a href="{{ url_for('dealer_pos', card_number='RC-AAY-1001') }}" class="badge badge-aay text-decoration-none">RC-AAY-1001 (Yellow)</a>
+                    <a href="{{ url_for('dealer_pos', card_number='RC-PHH-2001') }}" class="badge badge-phh text-decoration-none">RC-PHH-2001 (Pink)</a>
+                    <a href="{{ url_for('dealer_pos', card_number='RC-AY-4001') }}" class="badge badge-ay text-decoration-none">RC-AY-4001 (Green)</a>
+                </div>
             </div>
-        </div>
-        <div class="col-lg-5 text-center">
-            <div class="card bg-white border p-4 rounded-4 shadow-sm">
-                <h5 class="fw-bold mb-3" style="color: #111827;"><i class="bi bi-cpu me-2 text-warning"></i>Portal Quick Access</h5>
-                <div class="d-grid gap-2">
-                    <a href="{{ url_for('dealer_pos') }}" class="btn btn-light border text-start py-2">
-                        <i class="bi bi-cart3 text-success me-2"></i> <strong style="color: #111827;">Sales / Distribution POS</strong> <small class="text-muted d-block ms-4">Record ration sales & verify quota</small>
-                    </a>
-                    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-light border text-start py-2">
-                        <i class="bi bi-graph-up-arrow text-danger me-2"></i> <strong style="color: #111827;">Dashboard</strong> <small class="text-muted d-block ms-4">Stock monitoring & system overview</small>
-                    </a>
+
+            <!-- Quick Access Navigation Panel -->
+            <div class="col-lg-5">
+                <div class="card bg-white border p-4 shadow-sm" style="border-top: 3px solid var(--pds-primary) !important;">
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <i class="bi bi-shield-lock-fill text-warning fs-4"></i>
+                        <h5 class="fw-bold mb-0 text-primary">Role-Based Access</h5>
+                    </div>
+                    <p class="small text-muted mb-3">
+                        Authorized civil supplies personnel, licensed fair price dealers, and enrolled citizens can access their designated workspaces below:
+                    </p>
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('dealer_pos') }}" class="btn btn-outline-primary text-start p-3 d-flex align-items-center gap-3">
+                            <i class="bi bi-cart-check-fill fs-3 text-primary"></i>
+                            <div>
+                                <strong class="d-block text-dark">Fair Price Dealer Counter</strong>
+                                <small class="text-muted">Dispense monthly grain quota & generate e-receipts</small>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary text-start p-3 d-flex align-items-center gap-3">
+                            <i class="bi bi-speedometer2 fs-3 text-primary"></i>
+                            <div>
+                                <strong class="d-block text-dark">Civil Supplies Administration</strong>
+                                <small class="text-muted">District oversight, inventory matrix & audit logs</small>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('citizen_dashboard') }}" class="btn btn-outline-success text-start p-3 d-flex align-items-center gap-3">
+                            <i class="bi bi-person-badge-fill fs-3 text-success"></i>
+                            <div>
+                                <strong class="d-block text-dark">Citizen Self-Service Portal</strong>
+                                <small class="text-muted">Check remaining entitlement balance & history</small>
+                            </div>
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Key Stat Counters -->
+<!-- 2. Key Operational Stat Counters -->
 <div class="row g-3 mb-4">
     <div class="col-md-4">
-        <div class="stat-card stat-primary">
-            <div class="stat-icon text-primary"><i class="bi bi-shop"></i></div>
+        <div class="stat-card">
+            <div class="stat-icon text-primary">
+                <i class="bi bi-shop"></i>
+            </div>
             <div>
                 <div class="stat-value">{{ total_shops }}</div>
                 <div class="stat-label">Active Fair Price Shops</div>
@@ -57,34 +92,39 @@
         </div>
     </div>
     <div class="col-md-4">
-        <div class="stat-card stat-success">
-            <div class="stat-icon text-success"><i class="bi bi-people"></i></div>
+        <div class="stat-card">
+            <div class="stat-icon text-success">
+                <i class="bi bi-people-fill"></i>
+            </div>
             <div>
                 <div class="stat-value">{{ total_cards }}</div>
-                <div class="stat-label">Enrolled Beneficiary Cards</div>
+                <div class="stat-label">Enrolled Beneficiary Families</div>
             </div>
         </div>
     </div>
     <div class="col-md-4">
-        <div class="stat-card stat-warning">
-            <div class="stat-icon text-warning"><i class="bi bi-basket2"></i></div>
+        <div class="stat-card">
+            <div class="stat-icon text-warning">
+                <i class="bi bi-basket2-fill"></i>
+            </div>
             <div>
                 <div class="stat-value">{{ total_grains }} <small class="fs-6 text-muted">kg/L</small></div>
-                <div class="stat-label">{{ current_month_str }} Distributed</div>
+                <div class="stat-label">{{ current_month_str }} Disbursed Volume</div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Card Categories Breakdown & PDS Subsidized Rates -->
+<!-- 3. Ration Card Entitlement Norms & Subsidized Commodity Prices -->
 <div class="row g-4 mb-4">
+    <!-- Categories Breakdown Table -->
     <div class="col-lg-7">
         <div class="card card-pds h-100">
             <div class="card-header card-header-pds d-flex justify-content-between align-items-center">
                 <span><i class="bi bi-credit-card-2-front me-2 text-primary"></i>Ration Card Categories & Entitlement Norms</span>
                 <span class="badge bg-secondary">NFSA Guidelines</span>
             </div>
-            <div class="card-body">
+            <div class="card-body p-0">
                 <div class="table-responsive">
                     <table class="table table-hover align-middle mb-0">
                         <thead class="table-light">
@@ -132,15 +172,15 @@
         <div class="card card-pds h-100">
             <div class="card-header card-header-pds d-flex justify-content-between align-items-center">
                 <span><i class="bi bi-tag-fill me-2 text-success"></i>Subsidized PDS Commodities</span>
-                <span class="badge bg-success">Govt. Subsidized Rates</span>
+                <span class="badge bg-success">Govt. Fixed Tariff</span>
             </div>
             <div class="card-body p-0">
                 <ul class="list-group list-group-flush">
                     {% for comm in commodities %}
                     <li class="list-group-item d-flex justify-content-between align-items-center p-3">
                         <div>
-                            <strong class="d-block">{{ comm.name }}</strong>
-                            <small class="text-muted">Standard allocation unit: per {{ comm.unit }}</small>
+                            <strong class="d-block text-dark">{{ comm.name }}</strong>
+                            <small class="text-muted">Standard unit: per {{ comm.unit }}</small>
                         </div>
                         <div>
                             <span class="badge bg-primary fs-6 px-3 py-2">
@@ -159,25 +199,27 @@
     </div>
 </div>
 
-<!-- Fair Price Shops Directory -->
+<!-- 4. Fair Price Shops Directory -->
 <div class="card card-pds">
     <div class="card-header card-header-pds d-flex justify-content-between align-items-center">
-        <span><i class="bi bi-geo-alt-fill me-2 text-danger"></i>Active Fair Price Shops (FPS) in District</span>
-        <a href="{{ url_for('admin_shops') }}" class="btn btn-outline-primary btn-sm">View All Shops</a>
+        <span><i class="bi bi-geo-alt-fill me-2 text-primary"></i>Active Fair Price Shops (FPS) in District</span>
+        <a href="{{ url_for('admin_shops') }}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-arrow-right me-1"></i> View All Shops
+        </a>
     </div>
     <div class="card-body">
         <div class="row g-3">
             {% for shop in shops %}
             <div class="col-md-6 col-lg-3">
-                <div class="border rounded-3 p-3 h-100 bg-light">
+                <div class="card h-100 border p-3 bg-light" style="border-radius: 8px;">
                     <div class="d-flex justify-content-between align-items-start mb-2">
-                        <span class="badge bg-dark">{{ shop.shop_code }}</span>
-                        <span class="badge bg-success">{{ shop.status }}</span>
+                        <code class="fw-bold">{{ shop.shop_code }}</code>
+                        <span class="badge bg-success bg-opacity-10 text-success border border-success">{{ shop.status }}</span>
                     </div>
-                    <h6 class="fw-bold mb-1">{{ shop.shop_name }}</h6>
-                    <p class="small text-muted mb-2"><i class="bi bi-person me-1"></i>Dealer: {{ shop.dealer_name }}</p>
-                    <p class="small text-muted mb-2"><i class="bi bi-geo-alt me-1"></i>{{ shop.ward }}, {{ shop.address }}</p>
-                    <p class="small text-muted mb-0"><i class="bi bi-telephone me-1"></i>{{ shop.contact_no }}</p>
+                    <h6 class="fw-bold mb-1 text-primary">{{ shop.shop_name }}</h6>
+                    <div class="small text-muted mb-1"><i class="bi bi-person me-1"></i>Dealer: {{ shop.dealer_name }}</div>
+                    <div class="small text-muted mb-2"><i class="bi bi-geo-alt me-1"></i>{{ shop.ward }}, {{ shop.address }}</div>
+                    <div class="small text-muted mt-auto pt-2 border-top"><i class="bi bi-telephone me-1"></i>{{ shop.contact_no }}</div>
                 </div>
             </div>
             {% endfor %}

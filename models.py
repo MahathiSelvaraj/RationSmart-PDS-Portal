@@ -203,6 +203,8 @@ class DistributionTransaction(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     bill_number = db.Column(db.String(64), unique=True, nullable=False, index=True)
+    client_sale_id = db.Column(db.String(64), unique=True, nullable=True, index=True)
+    sync_status = db.Column(db.String(20), default='synced') # 'synced', 'offline_synced'
     ration_card_id = db.Column(db.Integer, db.ForeignKey('ration_cards.id'), nullable=False)
     family_member_id = db.Column(db.Integer, db.ForeignKey('family_members.id'), nullable=True)
     shop_id = db.Column(db.Integer, db.ForeignKey('ration_shops.id'), nullable=False)
@@ -323,4 +325,108 @@ class ComplaintAuditLog(db.Model):
     
     def __repr__(self):
         return f"<ComplaintAuditLog Complaint:{self.complaint_id} {self.old_status}->{self.new_status}>"
+
+
+class AuditLog(db.Model):
+    __tablename__ = 'audit_logs'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    event_id = db.Column(db.String(64), unique=True, nullable=False, index=True)
+    actor_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True, index=True)
+    actor_role = db.Column(db.String(32), nullable=False, index=True)
+    actor_identifier = db.Column(db.String(128), nullable=False, index=True)
+    action = db.Column(db.String(64), nullable=False, index=True)
+    entity_type = db.Column(db.String(64), nullable=False, index=True)
+    entity_id = db.Column(db.String(64), nullable=True, index=True)
+    shop_id = db.Column(db.Integer, db.ForeignKey('ration_shops.id'), nullable=True, index=True)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+    outcome = db.Column(db.String(16), default='SUCCESS', nullable=False, index=True) # 'SUCCESS', 'FAILURE', 'DENIED'
+    reason = db.Column(db.Text, nullable=True)
+    changes = db.Column(db.Text, nullable=True) # JSON serialized changes
+    request_id = db.Column(db.String(64), nullable=True)
+    ip_address = db.Column(db.String(64), nullable=True)
+    
+    # Relationships
+    actor = db.relationship('User', foreign_keys=[actor_user_id], lazy=True)
+    shop = db.relationship('FairPriceShop', foreign_keys=[shop_id], lazy=True)
+    
+    def get_changes_dict(self):
+        if not self.changes:
+            return None
+        import json
+        try:
+            return json.loads(self.changes)
+        except Exception:
+            return self.changes
+
+    def __repr__(self):
+        return f"<AuditLog {self.event_id} [{self.outcome}] {self.action} on {self.entity_type}:{self.entity_id} by {self.actor_identifier}>"
+
+
+class StockReplenishmentRequest(db.Model):
+    __tablename__ = 'stock_replenishment_requests'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    request_id = db.Column(db.String(64), unique=True, nullable=False, index=True) # e.g. REQ-202610-A1B2C
+    dealer_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    shop_id = db.Column(db.Integer, db.ForeignKey('ration_shops.id'), nullable=False, index=True)
+    commodity_id = db.Column(db.Integer, db.ForeignKey('commodities.id'), nullable=False, index=True)
+    stock_snapshot = db.Column(db.Float, nullable=False, default=0.0)
+    requested_quantity = db.Column(db.Float, nullable=False)
+    approved_quantity = db.Column(db.Float, nullable=True)
+    reason = db.Column(db.String(500), nullable=False)
+    status = db.Column(db.String(32), default='Pending', nullable=False, index=True) # 'Pending', 'Approved', 'Rejected', 'Fulfilled', 'Cancelled'
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+    
+    # Admin decision details
+    admin_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True, index=True)
+    admin_remarks = db.Column(db.String(500), nullable=True)
+    decided_at = db.Column(db.DateTime, nullable=True)
+    
+    # Relationships
+    dealer = db.relationship('User', foreign_keys=[dealer_user_id], lazy=True)
+    shop = db.relationship('FairPriceShop', foreign_keys=[shop_id], lazy=True)
+    commodity = db.relationship('Commodity', foreign_keys=[commodity_id], lazy=True)
+    admin = db.relationship('User', foreign_keys=[admin_user_id], lazy=True)
+    receipts = db.relationship('StockReceipt', backref='replenishment_request', cascade='all, delete-orphan', lazy=True)
+    
+    @property
+    def status_badge_class(self):
+        badges = {
+            'Pending': 'bg-warning text-dark',
+            'Approved': 'bg-primary text-white',
+            'Fulfilled': 'bg-success text-white',
+            'Rejected': 'bg-danger text-white',
+            'Cancelled': 'bg-secondary text-white'
+        }
+        return badges.get(self.status, 'bg-light text-dark border')
+        
+    def __repr__(self):
+        return f"<StockReplenishmentRequest {self.request_id} Shop:{self.shop_id} Comm:{self.commodity_id} Qty:{self.requested_quantity} [{self.status}]>"
+
+
+class StockReceipt(db.Model):
+    __tablename__ = 'stock_receipts'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    receipt_id = db.Column(db.String(64), unique=True, nullable=False, index=True) # e.g. RCP-202610-X9Y8Z
+    request_id = db.Column(db.Integer, db.ForeignKey('stock_replenishment_requests.id'), nullable=False, index=True)
+    shop_id = db.Column(db.Integer, db.ForeignKey('ration_shops.id'), nullable=False, index=True)
+    commodity_id = db.Column(db.Integer, db.ForeignKey('commodities.id'), nullable=False, index=True)
+    quantity_received = db.Column(db.Float, nullable=False)
+    previous_stock = db.Column(db.Float, nullable=False)
+    new_stock = db.Column(db.Float, nullable=False)
+    received_by_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    received_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+    delivery_challan_no = db.Column(db.String(64), nullable=True)
+    notes = db.Column(db.String(500), nullable=True)
+    discrepancy_remarks = db.Column(db.String(500), nullable=True)
+    
+    # Relationships
+    shop = db.relationship('FairPriceShop', foreign_keys=[shop_id], lazy=True)
+    commodity = db.relationship('Commodity', foreign_keys=[commodity_id], lazy=True)
+    received_by = db.relationship('User', foreign_keys=[received_by_user_id], lazy=True)
+    
+    def __repr__(self):
+        return f"<StockReceipt {self.receipt_id} Shop:{self.shop_id} Comm:{self.commodity_id} Qty:{self.quantity_received}>"
 

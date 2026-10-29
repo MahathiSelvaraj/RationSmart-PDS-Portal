@@ -6,13 +6,27 @@
 <!-- POS Top Header -->
 <div class="card card-pds bg-light border-primary mb-4">
     <div class="card-body p-3">
-        <div class="d-flex align-items-center">
-            <div class="bg-primary text-white p-3 rounded-3 me-3">
-                <i class="bi bi-cart3 fs-3"></i>
+        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+            <div class="d-flex align-items-center">
+                <div class="bg-primary text-white p-3 rounded-3 me-3">
+                    <i class="bi bi-cart3 fs-3"></i>
+                </div>
+                <div>
+                    <h5 class="fw-bold mb-0 text-primary">{{ shop.shop_name }} <span class="badge bg-dark">{{ shop.shop_code }}</span></h5>
+                    <small class="text-muted"><i class="bi bi-person me-1"></i>Dealer: {{ shop.dealer_name }} | <i class="bi bi-geo-alt me-1"></i>{{ shop.ward }}</small>
+                </div>
             </div>
-            <div>
-                <h5 class="fw-bold mb-0 text-primary">{{ shop.shop_name }} <span class="badge bg-dark">{{ shop.shop_code }}</span></h5>
-                <small class="text-muted"><i class="bi bi-person me-1"></i>Dealer: {{ shop.dealer_name }} | <i class="bi bi-geo-alt me-1"></i>{{ shop.ward }}</small>
+            <div class="d-flex gap-2 align-items-center">
+                <a href="{{ url_for('offline_sales') }}" class="btn btn-outline-warning btn-sm fw-bold">
+                    <i class="bi bi-cloud-arrow-up me-1"></i> Offline Sales
+                    <span id="posPendingBadge" class="badge bg-warning text-dark ms-1 d-none">0</span>
+                </a>
+                <a href="{{ url_for('dealer_replenishment_requests') }}" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-box-arrow-in-down me-1"></i> Stock Indents
+                </a>
+                <a href="{{ url_for('dealer_stock') }}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-boxes me-1"></i> My Stock
+                </a>
             </div>
         </div>
     </div>
@@ -21,22 +35,29 @@
 <div class="row g-4">
     <!-- Main POS Section -->
     <div class="col-lg-8">
+        <!-- Offline Mode Notice Banner -->
+        <div id="posOfflineModeIndicator" class="alert alert-warning py-2 px-3 mb-3 d-none">
+            <i class="bi bi-cloud-slash fs-5 me-2 align-middle"></i>
+            <strong>Offline POS Terminal Active:</strong>
+            Operating from local IndexedDB cache. Sales will be recorded locally as <span class="badge badge-sync-pending">Pending Sync</span> and synchronized upon reconnection.
+        </div>
+
         <!-- Beneficiary Search Bar -->
         <div class="card card-pds mb-4">
             <div class="card-header card-header-pds">
                 <i class="bi bi-person-bounding-box me-2 text-primary"></i>Step 1: Authenticate Beneficiary / Search Ration Card
             </div>
             <div class="card-body">
-                <form action="{{ url_for('dealer_pos') }}" method="GET" class="row g-2">
-                    <input type="hidden" name="shop_id" value="{{ shop.id }}">
+                <form action="{{ url_for('dealer_pos') }}" method="GET" class="row g-2" id="posCardSearchForm">
+                    <input type="hidden" name="shop_id" value="{{ shop.id }}" id="posShopId">
                     <div class="col-md-9">
                         <div class="input-group">
                             <span class="input-group-text bg-light"><i class="bi bi-credit-card"></i></span>
-                            <input type="text" name="card_number" value="{{ card_search or '' }}" class="form-control form-control-lg" placeholder="Scan / Enter Ration Card No. or Aadhaar Last 4..." required autofocus>
+                            <input type="text" name="card_number" id="posCardSearchInput" value="{{ card_search or '' }}" class="form-control form-control-lg" placeholder="Scan / Enter Ration Card No. or Aadhaar Last 4..." required autofocus>
                         </div>
                     </div>
                     <div class="col-md-3">
-                        <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold">
+                        <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold" id="btnLookupCard">
                             <i class="bi bi-search me-1"></i> Lookup
                         </button>
                     </div>
@@ -52,9 +73,13 @@
             </div>
         </div>
 
+        <!-- Offline Search Alert / Container -->
+        <div id="posOfflineSearchAlert" class="alert alert-warning py-3 px-3 d-none mb-4"></div>
+        <div id="posOfflineBeneficiaryContainer" class="d-none mb-4"></div>
+
         {% if selected_card and quota_status %}
-        <!-- Step 2: Distribution Entry & Quota Verification Form -->
-        <div class="card card-pds">
+        <!-- Step 2: Distribution Entry & Quota Verification Form (Server Rendered) -->
+        <div class="card card-pds" id="serverPosCardSection">
             <div class="card-header card-header-pds bg-light d-flex justify-content-between align-items-center">
                 <span><i class="bi bi-cart-check-fill me-2 text-success"></i>Step 2: Grain Disbursal & Biometric Recording</span>
                 <span class="badge bg-primary">{{ quota_status.month_period }} Quota</span>
@@ -63,10 +88,10 @@
                 <!-- Beneficiary Card Summary -->
                 <div class="alert alert-info py-2 px-3 mb-3 d-flex flex-wrap justify-content-between align-items-center">
                     <div>
-                        <strong class="fs-5">{{ selected_card.head_of_family }}</strong>
-                        <span class="text-muted ms-2">(Card: <code>{{ selected_card.card_number }}</code>)</span>
+                        <strong class="fs-5" id="posCardHolderName">{{ selected_card.head_of_family }}</strong>
+                        <span class="text-muted ms-2">(Card: <code id="posCardNumberDisplay">{{ selected_card.card_number }}</code>)</span>
                         {% set badge_info = selected_card.get_card_type_badge() %}
-                        <span class="badge {{ badge_info[1] }} ms-2">{{ badge_info[0] }}</span>
+                        <span class="badge {{ badge_info[1] }} ms-2" id="posCardTypeDisplay">{{ badge_info[0] }}</span>
                     </div>
                     <div>
                         <span class="badge bg-dark"><i class="bi bi-people me-1"></i>{{ selected_card.family_members_count }} Member(s)</span>
@@ -80,10 +105,11 @@
                 <!-- Sales Form -->
                 <form action="{{ url_for('process_sale') }}" method="POST" id="posForm">
                     <input type="hidden" name="ration_card_id" value="{{ selected_card.id }}">
+                    <input type="hidden" name="card_number_raw" id="posCardNumberRaw" value="{{ selected_card.card_number }}">
                     <input type="hidden" name="shop_id" value="{{ shop.id }}">
 
-                    <div class="table-responsive mb-3">
-                        <table class="table table-bordered align-middle">
+                    <div tabindex="0" role="region" aria-label="Beneficiary Quota and Disbursal Table" class="table-responsive mb-3">
+                        <table class="table table-bordered align-middle" style="min-width: 680px;">
                             <thead class="table-dark">
                                 <tr>
                                     <th>Commodity</th>
@@ -158,7 +184,7 @@
                     <div class="row g-3 mb-4 bg-light p-3 rounded-3 border">
                         <div class="col-md-6">
                             <label class="form-label fw-bold"><i class="bi bi-fingerprint me-1 text-primary"></i>Citizen Authentication Method</label>
-                            <select name="auth_mode" class="form-select" required>
+                            <select name="auth_mode" id="posAuthModeSelect" class="form-select" required>
                                 <option value="Biometric Aadhaar Fingerprint (Simulated Verification Passed)">
                                     ✓ Biometric Fingerprint (Aadhaar Linked - Verified)
                                 </option>
@@ -172,7 +198,7 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-bold"><i class="bi bi-cash-coin me-1 text-success"></i>Payment Mode</label>
-                            <select name="payment_mode" class="form-select" required>
+                            <select name="payment_mode" id="posPaymentModeSelect" class="form-select" required>
                                 <option value="Cash / Direct Subsidy">Cash / Direct Subsidy</option>
                                 <option value="UPI / Bharat QR">UPI / Bharat QR</option>
                                 <option value="Direct Benefit Transfer (DBT Zero Cash)">DBT Zero Cash / Free Scheme</option>
@@ -214,8 +240,9 @@
                             <small class="text-muted">Threshold: {{ stk.min_threshold }} {{ stk.unit }}</small>
                             <div class="mt-1">
                                 <span class="badge {{ stk.badge_class }} small">
-                                    <i class="bi bi-clock-history me-1"></i>{% if stk.days_to_depletion_num is not none and stk.days_to_depletion_num > 0 %}Est. ~{{ stk.days_to_depletion_num }} days left{% else %}{{ stk.status }}{% endif %}
+                                    {{ stk.status }}
                                 </span>
+                                <span class="badge bg-warning text-dark pos-stock-offline-badge d-none small ms-1" title="Local IndexedDB stock estimate">Offline Cache</span>
                             </div>
                         </div>
                         <div class="text-end">
@@ -231,8 +258,348 @@
                 </div>
             </div>
         </div>
-
-        <!-- Removed Cheat Sheet for simpler UI -->
     </div>
 </div>
+
+<!-- Offline Sale Confirmation Modal -->
+<div class="modal fade" id="posOfflineSuccessModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title fw-bold"><i class="bi bi-check-circle-fill me-2"></i>Offline Sale Saved Successfully!</h5>
+            </div>
+            <div class="modal-body p-4" id="posOfflineSuccessModalBody">
+                <!-- Dynamically generated receipt -->
+            </div>
+            <div class="modal-footer d-flex justify-content-between">
+                <a href="{{ url_for('offline_sales') }}" class="btn btn-outline-primary">
+                    <i class="bi bi-cloud-arrow-up me-1"></i> View Offline Register
+                </a>
+                <button type="button" class="btn btn-success" data-bs-dismiss="modal" onclick="resetPosForNextSale()">
+                    <i class="bi bi-plus-circle me-1"></i> Record Next Customer
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Check if offline to adjust search & submit behavior
+    const searchForm = document.getElementById('posCardSearchForm');
+    const searchInput = document.getElementById('posCardSearchInput');
+    const posForm = document.getElementById('posForm');
+
+    if (searchForm) {
+        searchForm.addEventListener('submit', async (e) => {
+            if (window.RationSmartPWA && !window.RationSmartPWA.isOnline()) {
+                e.preventDefault();
+                await handleOfflineCardLookup(searchInput.value);
+            }
+        });
+    }
+
+    if (posForm) {
+        posForm.addEventListener('submit', async (e) => {
+            if (window.RationSmartPWA && !window.RationSmartPWA.isOnline()) {
+                e.preventDefault();
+                await handleOfflineSaleSubmission();
+            }
+        });
+    }
+});
+
+async function handleOfflineCardLookup(query) {
+    const alertBox = document.getElementById('posOfflineSearchAlert');
+    const offlineContainer = document.getElementById('posOfflineBeneficiaryContainer');
+    const serverCardSection = document.getElementById('serverPosCardSection');
+
+    if (serverCardSection) serverCardSection.classList.add('d-none');
+    alertBox.classList.add('d-none');
+    offlineContainer.innerHTML = '';
+    offlineContainer.classList.add('d-none');
+
+    if (!query) return;
+
+    try {
+        const card = await window.RationSmartPWA.lookupCardOffline(query);
+        if (!card) {
+            alertBox.classList.remove('d-none');
+            alertBox.innerHTML = `
+                <div class="text-center">
+                    <i class="bi bi-exclamation-triangle fs-3 text-warning d-block mb-1"></i>
+                    <strong>Card Not Found in Offline Cache:</strong> "${query}"<br>
+                    <small class="text-muted">Only cardholders assigned to this Fair Price Shop that were cached while online can be looked up offline.</small>
+                </div>
+            `;
+            return;
+        }
+
+        renderOfflineQuotaForm(card);
+    } catch (err) {
+        alertBox.classList.remove('d-none');
+        alertBox.innerHTML = `<strong>Error:</strong> ${err.message}`;
+    }
+}
+
+function renderOfflineQuotaForm(card) {
+    const offlineContainer = document.getElementById('posOfflineBeneficiaryContainer');
+    offlineContainer.classList.remove('d-none');
+
+    const quotaRows = card.quotaItems.map((item) => {
+        return `
+            <tr class="pos-item-row">
+                <td>
+                    <strong>${item.name || item.commodity_name}</strong>
+                    <small class="d-block text-muted">Per ${item.unit}</small>
+                    <span class="badge bg-secondary small mt-1">${item.allocation_basis || 'PER_PERSON'}</span>
+                </td>
+                <td>
+                    ${item.unit_price === 0 ? '<span class="badge bg-success">₹0.00 (FREE)</span>' : '₹' + parseFloat(item.unit_price).toFixed(2)}
+                </td>
+                <td><strong>${item.entitled_qty}</strong> ${item.unit}</td>
+                <td><span class="text-secondary fw-bold">${item.claimed_qty || 0} ${item.unit}</span></td>
+                <td>
+                    <span class="fw-bold ${item.remaining_qty > 0 ? 'text-primary' : 'text-muted'}">
+                        ${item.remaining_qty} ${item.unit}
+                    </span>
+                </td>
+                <td>
+                    <div class="input-group input-group-sm">
+                        <input type="number" 
+                               step="0.5" 
+                               min="0" 
+                               max="${item.remaining_qty}"
+                               name="qty_${item.commodity_id}" 
+                               value="${item.remaining_qty > 0 ? item.remaining_qty : 0}"
+                               data-id="${item.commodity_id}"
+                               data-price="${item.unit_price}"
+                               data-max="${item.remaining_qty}"
+                               data-name="${item.name || item.commodity_name}"
+                               data-unit="${item.unit}"
+                               class="form-control text-center fw-bold pos-qty-input ${item.remaining_qty === 0 ? 'bg-light text-muted' : ''}"
+                               ${item.remaining_qty === 0 ? 'readonly' : ''}>
+                        <span class="input-group-text">${item.unit}</span>
+                    </div>
+                </td>
+                <td class="text-end fw-bold" id="subtotal_${item.commodity_id}">₹0.00</td>
+            </tr>
+        `;
+    }).join('');
+
+    offlineContainer.innerHTML = `
+        <div class="card card-pds">
+            <div class="card-header card-header-pds bg-light d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-cart-check-fill me-2 text-success"></i>Step 2: Grain Disbursal & Biometric Recording (Offline Mode)</span>
+                <span class="badge bg-warning text-dark"><i class="bi bi-cloud-slash me-1"></i>Offline POS</span>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info py-2 px-3 mb-3 d-flex flex-wrap justify-content-between align-items-center">
+                    <div>
+                        <strong class="fs-5">${card.headOfFamily}</strong>
+                        <span class="text-muted ms-2">(Card: <code>${card.cardNumber}</code>)</span>
+                        <span class="badge bg-primary ms-2">${card.cardType}</span>
+                    </div>
+                    <div>
+                        <span class="badge bg-dark"><i class="bi bi-people me-1"></i>${card.membersCount} Member(s)</span>
+                        <span class="badge bg-secondary ms-1"><i class="bi bi-shield-check me-1"></i>Aadhaar: **${card.aadhaarLast4 || 'XXXX'}</span>
+                    </div>
+                </div>
+
+                <div id="posQuotaWarning" class="alert alert-danger d-none mb-3"></div>
+
+                <form id="posFormOffline" onsubmit="event.preventDefault(); handleOfflineSaleSubmission();">
+                    <input type="hidden" id="posCardNumberRawOffline" value="${card.cardNumber}">
+                    <input type="hidden" id="posCardHolderOffline" value="${card.headOfFamily}">
+                    <input type="hidden" id="posCardTypeOffline" value="${card.cardType}">
+
+                    <div tabindex="0" role="region" aria-label="Beneficiary Quota and Disbursal Table" class="table-responsive mb-3">
+                        <table class="table table-bordered align-middle" style="min-width: 680px;">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Commodity</th>
+                                    <th>Unit Price</th>
+                                    <th>Entitlement</th>
+                                    <th>Received</th>
+                                    <th>Remaining Quota</th>
+                                    <th style="width: 140px;">Disburse Qty</th>
+                                    <th>Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${quotaRows}
+                            </tbody>
+                            <tfoot class="table-light">
+                                <tr>
+                                    <th colspan="6" class="text-end fs-5">Total Subsidized Bill Amount:</th>
+                                    <th class="text-end fs-4 text-success" id="posGrandTotal">₹0.00</th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    <div class="row g-3 mb-4 bg-light p-3 rounded-3 border">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold"><i class="bi bi-fingerprint me-1 text-primary"></i>Citizen Authentication Method</label>
+                            <select id="posAuthModeSelectOffline" class="form-select" required>
+                                <option value="Biometric Aadhaar (Offline Verified)">✓ Biometric Fingerprint (Offline Hardware Match)</option>
+                                <option value="Aadhaar OTP (Offline Fallback)">✓ Offline Mobile Authentication</option>
+                                <option value="Manual Emergency Override (Dealer Authorized)">⚠️ Manual Dealer Override</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold"><i class="bi bi-cash-coin me-1 text-success"></i>Payment Mode</label>
+                            <select id="posPaymentModeSelectOffline" class="form-select" required>
+                                <option value="Cash / Direct Subsidy">Cash / Direct Subsidy</option>
+                                <option value="Direct Benefit Transfer (DBT Zero Cash)">DBT Zero Cash / Free Scheme</option>
+                                <option value="UPI / Bharat QR">UPI / Bharat QR (Offline Collect)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" id="btnSubmitSaleOffline" class="btn btn-success btn-lg fw-bold py-3">
+                            <i class="bi bi-hdd-fill me-2"></i> Save Offline Sale & Queue for Sync
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    `;
+
+    // Re-initialize POS calculator for the newly rendered offline form
+    initPOSCalculator();
+}
+
+async function handleOfflineSaleSubmission() {
+    const isOnline = window.RationSmartPWA && window.RationSmartPWA.isOnline();
+    if (isOnline) {
+        // If unexpectedly online, let server form submit
+        const serverForm = document.getElementById('posForm');
+        if (serverForm) serverForm.submit();
+        return;
+    }
+
+    const cardNum = document.getElementById('posCardNumberRawOffline')?.value || document.getElementById('posCardNumberRaw')?.value;
+    const cardHolder = document.getElementById('posCardHolderOffline')?.value || document.getElementById('posCardHolderName')?.innerText || 'Beneficiary';
+    const cardType = document.getElementById('posCardTypeOffline')?.value || 'PHH';
+    const authMode = document.getElementById('posAuthModeSelectOffline')?.value || document.getElementById('posAuthModeSelect')?.value || 'Biometric Aadhaar (Offline Verified)';
+    const paymentMode = document.getElementById('posPaymentModeSelectOffline')?.value || document.getElementById('posPaymentModeSelect')?.value || 'Cash / Direct Subsidy';
+    const shopId = document.getElementById('posShopId')?.value;
+
+    const qtyInputs = document.querySelectorAll('.pos-qty-input');
+    const items = [];
+    let grandTotal = 0;
+
+    qtyInputs.forEach(input => {
+        const qty = parseFloat(input.value) || 0;
+        if (qty > 0) {
+            const price = parseFloat(input.dataset.price) || 0;
+            const subtotal = Math.round(qty * price * 100) / 100;
+            grandTotal += subtotal;
+            items.push({
+                commodityId: parseInt(input.dataset.id),
+                name: input.dataset.name,
+                quantity: qty,
+                unit: input.dataset.unit,
+                unitPrice: price,
+                subtotal: subtotal
+            });
+        }
+    });
+
+    if (items.length === 0) {
+        alert('Please enter at least one grain quantity greater than 0.');
+        return;
+    }
+
+    const salePayload = {
+        cardNumber: cardNum,
+        headOfFamily: cardHolder,
+        cardType: cardType,
+        shopId: shopId,
+        authMode: authMode,
+        paymentMode: paymentMode,
+        totalAmount: grandTotal,
+        items: items
+    };
+
+    try {
+        const recordedSale = await window.RationSmartPWA.recordOfflineSale(salePayload);
+        showOfflineSuccessModal(recordedSale);
+    } catch (err) {
+        alert('Offline Sale Failed: ' + err.message);
+    }
+}
+
+function showOfflineSuccessModal(sale) {
+    const modalBody = document.getElementById('posOfflineSuccessModalBody');
+    const itemsRows = sale.items.map(i => `
+        <tr>
+            <td>${i.name}</td>
+            <td class="text-center">${i.quantity} ${i.unit}</td>
+            <td class="text-end">₹${i.unitPrice.toFixed(2)}</td>
+            <td class="text-end fw-bold">₹${i.subtotal.toFixed(2)}</td>
+        </tr>
+    `).join('');
+
+    modalBody.innerHTML = `
+        <div class="alert alert-warning py-2 mb-3">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-hourglass-split fs-4 text-warning"></i>
+                <div>
+                    <strong>Status: PENDING SYNC (Saved Locally)</strong>
+                    <div class="small">This sale was recorded offline in device storage. It will upload automatically to the central PDS server upon reconnection.</div>
+                </div>
+            </div>
+        </div>
+        <div class="mb-3 border-bottom pb-2">
+            <div class="d-flex justify-content-between">
+                <span>Client Sale ID:</span>
+                <code>${sale.clientSaleId}</code>
+            </div>
+            <div class="d-flex justify-content-between">
+                <span>Beneficiary:</span>
+                <strong>${sale.headOfFamily} (<code>${sale.cardNumber}</code>)</strong>
+            </div>
+            <div class="d-flex justify-content-between">
+                <span>Payment & Auth:</span>
+                <span class="small">${sale.paymentMode} &bull; ${sale.authMode}</span>
+            </div>
+            <div class="d-flex justify-content-between">
+                <span>Timestamp:</span>
+                <small>${new Date(sale.timestamp).toLocaleString()}</small>
+            </div>
+        </div>
+        <table class="table table-sm table-bordered">
+            <thead class="table-light">
+                <tr>
+                    <th>Commodity</th>
+                    <th class="text-center">Qty</th>
+                    <th class="text-end">Price</th>
+                    <th class="text-end">Subtotal</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${itemsRows}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <th colspan="3" class="text-end">Total Bill Amount:</th>
+                    <th class="text-end text-success fs-5">₹${sale.totalAmount.toFixed(2)}</th>
+                </tr>
+            </tfoot>
+        </table>
+    `;
+
+    const modal = new bootstrap.Modal(document.getElementById('posOfflineSuccessModal'));
+    modal.show();
+}
+
+function resetPosForNextSale() {
+    window.location.href = "{{ url_for('dealer_pos') }}";
+}
+</script>
 {% endblock %}

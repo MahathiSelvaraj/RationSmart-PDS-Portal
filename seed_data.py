@@ -471,5 +471,89 @@ def seed_database(app=None):
         db.session.commit()
         print("Database successfully initialized with full sample PDS datasets and family members!")
 
+def ensure_essential_accounts(app=None):
+    """
+    Safely ensures essential accounts exist (admin, inspector, dealers, cardholders).
+    NEVER drops tables, and NEVER overwrites or resets existing users or passwords.
+    Returns a list of newly created usernames (if any).
+    """
+    if app is None:
+        from app import create_app
+        app = create_app()
+
+    created = []
+    with app.app_context():
+        # 1. Admin
+        admin = User.query.filter_by(username='admin').first()
+        if not admin:
+            admin = User(
+                username='admin',
+                full_name='District Food Supply Officer (Admin)',
+                email='admin@rationsmart.gov.in',
+                phone='9900011223',
+                role='admin'
+            )
+            admin.set_password('admin123')
+            db.session.add(admin)
+            created.append('admin')
+
+        # 2. Inspector
+        inspector = User.query.filter_by(username='inspector1').first()
+        if not inspector:
+            inspector = User(
+                username='inspector1',
+                full_name='Rajesh Nair (Vigilance Inspector)',
+                email='inspector@rationsmart.gov.in',
+                phone='9900099887',
+                role='admin'
+            )
+            inspector.set_password('inspector123')
+            db.session.add(inspector)
+            created.append('inspector1')
+
+        # 3. Dealers
+        dealer_configs = [
+            ('dealer1', 'Ramesh Kumar Verma', 'dealer1@rationsmart.gov.in', '9876543210', 'FPS-101', 'dealer123'),
+            ('dealer2', 'Sunita Devi', 'dealer2@rationsmart.gov.in', '9876501234', 'FPS-102', 'dealer123'),
+            ('dealer3', 'Abdul Razak', 'dealer3@rationsmart.gov.in', '9845123456', 'FPS-103', 'dealer123'),
+            ('dealer4', 'Manish Sharma', 'dealer4@rationsmart.gov.in', '9812345678', 'FPS-104', 'dealer123'),
+        ]
+
+        for uname, fname, mail, ph, scode, pwd in dealer_configs:
+            d = User.query.filter_by(username=uname).first()
+            if not d:
+                shop = FairPriceShop.query.filter_by(shop_code=scode).first()
+                d_user = User(
+                    username=uname,
+                    full_name=fname,
+                    email=mail,
+                    phone=ph,
+                    role='dealer',
+                    shop_id=shop.id if shop else None
+                )
+                d_user.set_password(pwd)
+                db.session.add(d_user)
+                created.append(uname)
+
+        # 4. Citizens for existing Ration Cards
+        for rc in RationCard.query.all():
+            u = User.query.filter_by(ration_card_id=rc.id, role='citizen').first()
+            if not u:
+                citizen_user = User(
+                    username=rc.card_number,
+                    full_name=rc.head_of_family,
+                    email=f"card_{rc.id}@citizen.gov.in",
+                    phone=rc.mobile or '9800000000',
+                    role='citizen',
+                    ration_card_id=rc.id
+                )
+                citizen_user.set_password('citizen123')
+                db.session.add(citizen_user)
+                created.append(rc.card_number)
+
+        if created:
+            db.session.commit()
+    return created
+
 if __name__ == '__main__':
     seed_database()

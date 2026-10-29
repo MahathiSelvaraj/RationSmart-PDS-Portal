@@ -1,5 +1,6 @@
 import os
 import io
+import csv
 import uuid
 from datetime import datetime, date, timedelta
 from functools import wraps
@@ -7,7 +8,7 @@ import qrcode
 from PIL import Image
 from flask import (
     Flask, render_template, request, redirect, url_for,
-    flash, jsonify, abort, send_file
+    flash, jsonify, abort, send_file, send_from_directory, make_response
 )
 from werkzeug.utils import secure_filename
 from flask_login import (
@@ -17,13 +18,15 @@ from config import Config
 from models import (
     db, User, FairPriceShop, RationShop, Commodity, RationCard, FamilyMember,
     GrainAllocation, ShopStock, DistributionTransaction, TransactionItem,
-    AnomalyLog, Grievance, Complaint, ComplaintAuditLog, AllocationRule
+    AnomalyLog, Grievance, Complaint, ComplaintAuditLog, AllocationRule, AuditLog,
+    StockReplenishmentRequest, StockReceipt
 )
 from rules import (
     get_monthly_entitlements, get_beneficiary_quota_status,
     estimate_stock_depletion, check_transaction_anomalies,
     calculate_demand_forecast, check_monthly_duplicate_purchases
 )
+from audit_service import log_audit_event, escape_csv_value
 
 def init_mysql_db_if_needed(app):
     """Auto-creates the MySQL database if not exists so users don't need MySQL Workbench."""
@@ -86,8 +89,17 @@ def create_app(config_class=Config):
 
         try:
             db.create_all()
+            # Safe production auto-initialization for Gunicorn on cloud platforms (e.g. Render)
+            # Only runs if the database contains 0 users; never overwrites existing users or passwords.
+            if app.config.get('AUTO_SEED_IF_EMPTY', True) and not app.config.get('TESTING', False):
+                if not User.query.first():
+                    from seed_data import seed_database
+                    seed_database(app)
         except Exception:
-            pass
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
     
     login_manager = LoginManager()
     login_manager.login_view = 'login'
@@ -106,6 +118,16 @@ def create_app(config_class=Config):
             @login_required
             def decorated_function(*args, **kwargs):
                 if not current_user.is_authenticated or current_user.role not in allowed_roles:
+                    user_role = getattr(current_user, 'role', 'Unknown')
+                    log_audit_event(
+                        action='AUTH_DENIED',
+                        entity_type='Endpoint',
+                        entity_id=request.path,
+                        shop_id=getattr(current_user, 'shop_id', None),
+                        outcome='DENIED',
+                        reason=f"Role '{user_role}' denied access to endpoint requiring {list(allowed_roles)}",
+                        commit=True
+                    )
                     if current_user.role == 'citizen':
                         flash('Access Denied: Customer accounts can only view their own ration portal and entitlement status.', 'danger')
                         return redirect(url_for('citizen_dashboard'))
@@ -127,20 +149,55 @@ def create_app(config_class=Config):
     def inject_global_vars():
         unread_anomalies = 0
         pending_grievances = 0
-        if current_user.is_authenticated and current_user.role in ['admin', 'inspector']:
-            unread_anomalies = AnomalyLog.query.filter_by(status='Flagged').count()
-            pending_grievances = Grievance.query.filter_by(status='Pending').count()
+        pending_replenishments_count = 0
+        approved_replenishments_count = 0
+        if current_user and getattr(current_user, 'is_authenticated', False):
+            if getattr(current_user, 'role', None) in ['admin', 'inspector']:
+                try:
+                    unread_anomalies = AnomalyLog.query.filter_by(status='Flagged').count()
+                    pending_grievances = Grievance.query.filter_by(status='Pending').count()
+                    pending_replenishments_count = StockReplenishmentRequest.query.filter_by(status='Pending').count()
+                except Exception:
+                    pass
+            elif getattr(current_user, 'role', None) == 'dealer' and getattr(current_user, 'shop_id', None):
+                try:
+                    pending_replenishments_count = StockReplenishmentRequest.query.filter_by(
+                        shop_id=current_user.shop_id, status='Pending'
+                    ).count()
+                    approved_replenishments_count = StockReplenishmentRequest.query.filter_by(
+                        shop_id=current_user.shop_id, status='Approved'
+                    ).count()
+                except Exception:
+                    pass
         return {
             'current_year': datetime.now().year,
             'current_month_str': datetime.now().strftime('%B %Y'),
             'current_period': datetime.now().strftime('%Y-%m'),
             'unread_anomalies_count': unread_anomalies,
-            'pending_grievances_count': pending_grievances
+            'pending_grievances_count': pending_grievances,
+            'pending_replenishments_count': pending_replenishments_count,
+            'approved_replenishments_count': approved_replenishments_count
         }
 
     # =========================================================================
     # PUBLIC ROUTES
     # =========================================================================
+
+    # =========================================================================
+    # PWA WEB APP MANIFEST & SERVICE WORKER
+    # =========================================================================
+
+    @app.route('/manifest.json')
+    def pwa_manifest():
+        return send_from_directory('static', 'manifest.json', mimetype='application/manifest+json')
+
+    @app.route('/sw.js')
+    @app.route('/service-worker.js')
+    def pwa_service_worker():
+        response = make_response(send_from_directory(os.path.join(app.root_path, 'static', 'js'), 'sw.js', mimetype='application/javascript'))
+        response.headers['Service-Worker-Allowed'] = '/'
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        return response
 
     @app.route('/')
     def index():
@@ -184,30 +241,98 @@ def create_app(config_class=Config):
             password = request.form.get('password', '').strip()
             selected_role = request.form.get('role', '').strip().lower()
             
-            # Lookup user by username or by Ration Card Number (for citizens)
-            user = User.query.filter_by(username=username).first()
+            # Lookup user by username or by Ration Card Number (case-insensitive) or registered mobile
+            user = User.query.filter(db.func.lower(User.username) == username.lower()).first()
             if not user:
-                rc = RationCard.query.filter_by(card_number=username).first()
+                clean_id = username.strip()
+                rc = RationCard.query.filter(
+                    (db.func.upper(RationCard.card_number) == clean_id.upper()) |
+                    (RationCard.card_number == clean_id) |
+                    (RationCard.mobile == clean_id)
+                ).first()
                 if rc:
                     user = User.query.filter_by(ration_card_id=rc.id, role='citizen').first()
 
-            if user and user.check_password(password):
+            # Verify password (allows citizen123 or pass for citizen accounts)
+            password_matches = False
+            if user:
+                if user.check_password(password):
+                    password_matches = True
+                elif user.role == 'citizen' and password in ('pass', 'citizen123'):
+                    if user.check_password('citizen123') or user.check_password('pass'):
+                        password_matches = True
+
+            if user and password_matches:
                 if not user.is_active:
+                    log_audit_event(
+                        action='AUTH_LOGIN_FAILED',
+                        actor_identifier=username,
+                        actor_user=user,
+                        entity_type='User',
+                        entity_id=str(user.id),
+                        shop_id=user.shop_id,
+                        outcome='FAILURE',
+                        reason='Account is inactive. Contact District Administrator.',
+                        commit=True
+                    )
                     flash('Account is inactive. Please contact District Administrator.', 'danger')
                     return render_template('auth/login.html')
                 
                 # If a specific role was chosen in the UI, verify role compatibility
                 if selected_role == 'admin' and user.role not in ['admin', 'inspector']:
+                    log_audit_event(
+                        action='AUTH_LOGIN_FAILED',
+                        actor_identifier=username,
+                        actor_user=user,
+                        entity_type='User',
+                        entity_id=str(user.id),
+                        shop_id=user.shop_id,
+                        outcome='FAILURE',
+                        reason='Role mismatch: Account lacks Administrator privileges',
+                        commit=True
+                    )
                     flash('Access Denied: The provided account does not have Administrator privileges.', 'danger')
                     return render_template('auth/login.html')
                 elif selected_role == 'dealer' and user.role != 'dealer':
+                    log_audit_event(
+                        action='AUTH_LOGIN_FAILED',
+                        actor_identifier=username,
+                        actor_user=user,
+                        entity_type='User',
+                        entity_id=str(user.id),
+                        shop_id=user.shop_id,
+                        outcome='FAILURE',
+                        reason='Role mismatch: Account is not a licensed Dealer',
+                        commit=True
+                    )
                     flash('Access Denied: The provided account is not a licensed Dealer account.', 'danger')
                     return render_template('auth/login.html')
                 elif selected_role == 'customer' and user.role != 'citizen':
+                    log_audit_event(
+                        action='AUTH_LOGIN_FAILED',
+                        actor_identifier=username,
+                        actor_user=user,
+                        entity_type='User',
+                        entity_id=str(user.id),
+                        shop_id=user.shop_id,
+                        outcome='FAILURE',
+                        reason='Role mismatch: Account is not a Customer / Cardholder account',
+                        commit=True
+                    )
                     flash('Access Denied: The provided account is not a Customer / Cardholder account.', 'danger')
                     return render_template('auth/login.html')
 
                 login_user(user, remember=True)
+                log_audit_event(
+                    action='AUTH_LOGIN_SUCCESS',
+                    actor_user=user,
+                    entity_type='User',
+                    entity_id=str(user.id),
+                    shop_id=user.shop_id,
+                    outcome='SUCCESS',
+                    reason=f"User '{user.username}' logged in successfully as {user.role.upper()}",
+                    commit=True
+                )
                 flash(f'Welcome back, {user.full_name}! Logged in as {user.role.upper()}.', 'success')
                 
                 # Check for next query parameter safely
@@ -225,6 +350,17 @@ def create_app(config_class=Config):
                 
                 return redirect(url_for('index'))
             else:
+                log_audit_event(
+                    action='AUTH_LOGIN_FAILED',
+                    actor_identifier=username or 'anonymous',
+                    actor_role='Anonymous',
+                    entity_type='User',
+                    entity_id=str(user.id) if user else None,
+                    shop_id=user.shop_id if user else None,
+                    outcome='FAILURE',
+                    reason='Invalid username or password',
+                    commit=True
+                )
                 flash('Invalid username or password. Please verify credentials.', 'danger')
                 
         return render_template('auth/login.html')
@@ -232,7 +368,23 @@ def create_app(config_class=Config):
     @app.route('/logout')
     @login_required
     def logout():
+        user_id = current_user.id
+        username = current_user.username
+        role = current_user.role
+        shop_id = current_user.shop_id
         logout_user()
+        log_audit_event(
+            action='AUTH_LOGOUT',
+            actor_user_id=user_id,
+            actor_identifier=username,
+            actor_role=role,
+            entity_type='User',
+            entity_id=str(user_id),
+            shop_id=shop_id,
+            outcome='SUCCESS',
+            reason=f"User '{username}' logged out securely",
+            commit=True
+        )
         flash('You have been securely logged out.', 'info')
         return redirect(url_for('login'))
 
@@ -380,15 +532,45 @@ def create_app(config_class=Config):
         
         ration_card = db.session.get(RationCard, card_id)
         if not ration_card:
+            log_audit_event(
+                action='BILLING_FAILED',
+                entity_type='DistributionTransaction',
+                entity_id=None,
+                shop_id=shop.id,
+                outcome='FAILURE',
+                reason='Distribution Rejected: Invalid or non-existent Ration Card',
+                changes={'card_id': card_id},
+                commit=True
+            )
             flash("Distribution Rejected: Invalid or non-existent Ration Card.", "danger")
             return redirect(url_for('dealer_pos'))
             
         if ration_card.status != 'Active':
+            log_audit_event(
+                action='BILLING_FAILED',
+                entity_type='DistributionTransaction',
+                entity_id=None,
+                shop_id=shop.id,
+                outcome='FAILURE',
+                reason=f"Distribution Rejected: Ration Card '{ration_card.card_number}' is {ration_card.status}",
+                changes={'card_number': ration_card.card_number, 'status': ration_card.status},
+                commit=True
+            )
             flash(f"Distribution Rejected: Ration Card '{ration_card.card_number}' is {ration_card.status}. Only Active cards can receive ration.", "danger")
             return redirect(url_for('dealer_pos'))
 
         # Security Check: Verify card belongs to dealer's shop
         if ration_card.assigned_shop_id != shop.id:
+            log_audit_event(
+                action='BILLING_FAILED',
+                entity_type='DistributionTransaction',
+                entity_id=None,
+                shop_id=shop.id,
+                outcome='FAILURE',
+                reason=f"Security Enforcement: Ration Card '{ration_card.card_number}' belongs to another shop ({ration_card.assigned_shop.shop_name})",
+                changes={'card_number': ration_card.card_number, 'assigned_shop_id': ration_card.assigned_shop_id, 'dealer_shop_id': shop.id},
+                commit=True
+            )
             flash(f"Security Enforcement: Ration Card '{ration_card.card_number}' belongs to another shop ({ration_card.assigned_shop.shop_name}). Distribution denied.", "danger")
             return redirect(url_for('dealer_pos'))
         
@@ -408,6 +590,16 @@ def create_app(config_class=Config):
                 qty = 0.0
                 
             if qty < 0:
+                log_audit_event(
+                    action='BILLING_FAILED',
+                    entity_type='DistributionTransaction',
+                    entity_id=None,
+                    shop_id=shop.id,
+                    outcome='FAILURE',
+                    reason="Distribution Rejected: Grain quantity cannot be negative",
+                    changes={'commodity_id': comm.id, 'qty': qty, 'card_number': ration_card.card_number},
+                    commit=True
+                )
                 flash("Distribution Rejected: Grain quantity cannot be negative.", "danger")
                 return redirect(url_for('dealer_pos', card_number=ration_card.card_number))
 
@@ -417,6 +609,16 @@ def create_app(config_class=Config):
                 
                 # 1. Validation: Quantity exceeds remaining entitlement
                 if qty > remaining_quota:
+                    log_audit_event(
+                        action='BILLING_FAILED',
+                        entity_type='DistributionTransaction',
+                        entity_id=None,
+                        shop_id=shop.id,
+                        outcome='FAILURE',
+                        reason=f"Distribution Rejected: Requested {qty} {comm.unit} of {comm.name} exceeds customer remaining entitlement ({remaining_quota} {comm.unit})",
+                        changes={'commodity': comm.name, 'requested_qty': qty, 'remaining_quota': remaining_quota, 'card_number': ration_card.card_number},
+                        commit=True
+                    )
                     flash(f"Distribution Rejected: Requested {qty} {comm.unit} of {comm.name} exceeds customer's remaining entitlement ({remaining_quota} {comm.unit}).", "danger")
                     return redirect(url_for('dealer_pos', card_number=ration_card.card_number))
                 
@@ -424,6 +626,16 @@ def create_app(config_class=Config):
                 stock = ShopStock.query.filter_by(shop_id=shop.id, commodity_id=comm.id).first()
                 available_stock = stock.current_stock if stock else 0.0
                 if qty > available_stock:
+                    log_audit_event(
+                        action='BILLING_FAILED',
+                        entity_type='DistributionTransaction',
+                        entity_id=None,
+                        shop_id=shop.id,
+                        outcome='FAILURE',
+                        reason=f"Distribution Rejected: Requested {qty} {comm.unit} of {comm.name} exceeds shop available stock ({available_stock} {comm.unit})",
+                        changes={'commodity': comm.name, 'requested_qty': qty, 'available_stock': available_stock, 'shop_id': shop.id},
+                        commit=True
+                    )
                     flash(f"Distribution Rejected: Requested {qty} {comm.unit} of {comm.name} exceeds shop's available stock ({available_stock} {comm.unit}).", "danger")
                     return redirect(url_for('dealer_pos', card_number=ration_card.card_number))
 
@@ -441,6 +653,16 @@ def create_app(config_class=Config):
                 })
                 
         if not items_data:
+            log_audit_event(
+                action='BILLING_FAILED',
+                entity_type='DistributionTransaction',
+                entity_id=None,
+                shop_id=shop.id,
+                outcome='FAILURE',
+                reason='Distribution Rejected: No valid grain quantity greater than 0 entered',
+                changes={'card_number': ration_card.card_number},
+                commit=True
+            )
             flash('Distribution Rejected: Please enter at least one valid grain quantity greater than 0.', 'danger')
             return redirect(url_for('dealer_pos', card_number=ration_card.card_number))
         
@@ -464,6 +686,16 @@ def create_app(config_class=Config):
                     status='Flagged'
                 )
                 db.session.add(log)
+            log_audit_event(
+                action='BILLING_FAILED',
+                entity_type='DistributionTransaction',
+                entity_id=None,
+                shop_id=shop.id,
+                outcome='FAILURE',
+                reason=f"Distribution Blocked by Policy: {critical_errors[0]['description']}",
+                changes={'critical_errors': [e['description'] for e in critical_errors], 'card_number': ration_card.card_number},
+                commit=False
+            )
             db.session.commit()
             return redirect(url_for('dealer_pos', card_number=ration_card.card_number))
         
@@ -517,12 +749,44 @@ def create_app(config_class=Config):
                     status='Flagged'
                 )
                 db.session.add(log)
+
+            # Atomic audit event recorded within the same database transaction
+            log_audit_event(
+                action='BILL_CREATED',
+                actor_user=current_user,
+                entity_type='DistributionTransaction',
+                entity_id=bill_number,
+                shop_id=shop.id,
+                outcome='SUCCESS',
+                reason=f"Bill #{bill_number} generated for Ration Card {ration_card.card_number}",
+                changes={
+                    'bill_number': bill_number,
+                    'ration_card_number': ration_card.card_number,
+                    'card_type': ration_card.card_type,
+                    'total_amount': round(total_bill_amount, 2),
+                    'payment_mode': payment_mode,
+                    'auth_mode': auth_mode,
+                    'items': [{'commodity': item['commodity'].name, 'quantity': item['quantity'], 'subtotal': item['subtotal']} for item in items_data]
+                },
+                commit=False
+            )
                 
             db.session.commit()
             flash(f"Distribution recorded successfully! Bill #{bill_number} generated.", 'success')
             return redirect(url_for('view_receipt', transaction_id=tx.id))
         except Exception as e:
             db.session.rollback()
+            log_audit_event(
+                action='BILLING_FAILED',
+                actor_user=current_user,
+                entity_type='DistributionTransaction',
+                entity_id=None,
+                shop_id=shop.id,
+                outcome='FAILURE',
+                reason=f"Transaction Error: {str(e)}",
+                changes={'ration_card_id': card_id},
+                commit=True
+            )
             flash(f"Transaction Error: Bill generation failed ({str(e)}). Stock was NOT reduced.", 'danger')
             return redirect(url_for('dealer_pos', card_number=ration_card.card_number))
 
@@ -540,12 +804,24 @@ def create_app(config_class=Config):
         allocations = GrainAllocation.query.filter_by(shop_id=shop.id).order_by(
             GrainAllocation.created_at.desc()
         ).limit(10).all()
+
+        pending_requests = StockReplenishmentRequest.query.filter_by(
+            shop_id=shop.id, status='Pending'
+        ).all()
+        pending_map = {r.commodity_id: r for r in pending_requests}
+
+        approved_requests = StockReplenishmentRequest.query.filter_by(
+            shop_id=shop.id, status='Approved'
+        ).all()
+        approved_map = {r.commodity_id: r for r in approved_requests}
         
         return render_template(
             'dealer/stock.html',
             shop=shop,
             stock_reports=stock_reports,
-            allocations=allocations
+            allocations=allocations,
+            pending_map=pending_map,
+            approved_map=approved_map
         )
 
     @app.route('/dealer/sales-history')
@@ -587,6 +863,289 @@ def create_app(config_class=Config):
             filter_date=filter_date
         )
 
+    # =========================================================================
+    # PWA OFFLINE SALES WORKSPACE & SYNCHRONIZATION APIS
+    # =========================================================================
+
+    @app.route('/offline-sales')
+    @app.route('/dealer/offline-sales')
+    @role_required('dealer')
+    def offline_sales():
+        if not current_user.shop_id:
+            flash("Account Error: Dealer not assigned to a shop.", "danger")
+            return redirect(url_for('dealer_pos'))
+
+        shop = current_user.shop
+        synced_offline_txs = DistributionTransaction.query.filter_by(
+            shop_id=shop.id,
+            sync_status='offline_synced'
+        ).order_by(DistributionTransaction.transaction_date.desc()).limit(20).all()
+
+        return render_template(
+            'dealer/offline_sales.html',
+            shop=shop,
+            synced_offline_txs=synced_offline_txs
+        )
+
+    @app.route('/api/dealer/pwa-bootstrap')
+    @login_required
+    def api_dealer_pwa_bootstrap():
+        if current_user.role != 'dealer' or not current_user.shop_id:
+            return jsonify({'success': False, 'message': 'Unauthorized or no assigned shop'}), 403
+
+        shop = current_user.shop
+        if not shop:
+            return jsonify({'success': False, 'message': 'Shop not found'}), 404
+
+        commodities = Commodity.query.filter_by(is_active=True).all()
+        stock_list = []
+        for comm in commodities:
+            stk = ShopStock.query.filter_by(shop_id=shop.id, commodity_id=comm.id).first()
+            stock_list.append({
+                'commodity_id': comm.id,
+                'code': comm.code,
+                'name': comm.name,
+                'unit': comm.unit,
+                'unit_price': comm.price_per_unit,
+                'current_stock': stk.current_stock if stk else 0.0,
+                'min_threshold': stk.min_threshold if stk else 100.0
+            })
+
+        current_period = datetime.now().strftime('%Y-%m')
+        cards_data = []
+        shop_cards = RationCard.query.filter_by(assigned_shop_id=shop.id, status='Active').all()
+        for card in shop_cards:
+            quota_status = get_beneficiary_quota_status(card, month_period=current_period)
+            cards_data.append({
+                'id': card.id,
+                'card_number': card.card_number,
+                'head_of_family': card.head_of_family,
+                'card_type': card.card_type,
+                'members_count': card.family_members_count,
+                'aadhaar_last4': card.aadhaar_last4,
+                'mobile': card.mobile,
+                'assigned_shop_id': card.assigned_shop_id,
+                'status': card.status,
+                'quota_items': quota_status.get('quota_items', []),
+                'month_period': current_period
+            })
+
+        return jsonify({
+            'success': True,
+            'shop': {
+                'id': shop.id,
+                'shop_code': shop.shop_code,
+                'shop_name': shop.shop_name,
+                'ward': shop.ward,
+                'dealer_name': shop.dealer_name
+            },
+            'stock': stock_list,
+            'cards': cards_data,
+            'timestamp': datetime.now().isoformat()
+        })
+
+    @app.route('/api/sales/bulk-sync', methods=['POST'])
+    @login_required
+    def api_sales_bulk_sync():
+        if current_user.role != 'dealer' or not current_user.shop_id:
+            return jsonify({'success': False, 'message': 'Unauthorized or no assigned shop'}), 403
+
+        shop_id = current_user.shop_id
+        shop = current_user.shop
+        data = request.get_json(silent=True) or {}
+        sales = data.get('sales', [])
+
+        if not isinstance(sales, list):
+            return jsonify({'success': False, 'message': 'Invalid sales payload'}), 400
+
+        synced = []
+        rejected = []
+        already_processed = []
+
+        current_month = datetime.now().strftime('%Y-%m')
+        current_period_bill = datetime.now().strftime('%Y%m')
+
+        for s in sales:
+            client_sale_id = s.get('clientSaleId')
+            if not client_sale_id:
+                rejected.append({'clientSaleId': None, 'reason': 'Missing clientSaleId idempotency key'})
+                continue
+
+            # Idempotency check: has this sale already been processed?
+            existing_tx = DistributionTransaction.query.filter_by(client_sale_id=client_sale_id).first()
+            if existing_tx:
+                already_processed.append({
+                    'clientSaleId': client_sale_id,
+                    'status': 'already_processed',
+                    'billNumber': existing_tx.bill_number,
+                    'transactionId': existing_tx.id,
+                    'totalAmount': existing_tx.total_amount
+                })
+                continue
+
+            card_number = s.get('cardNumber', '').strip()
+            ration_card = RationCard.query.filter_by(card_number=card_number).first()
+            if not ration_card:
+                rejected.append({'clientSaleId': client_sale_id, 'reason': f"Ration Card '{card_number}' not found on server"})
+                continue
+
+            if ration_card.status != 'Active':
+                rejected.append({'clientSaleId': client_sale_id, 'reason': f"Ration Card '{card_number}' is inactive ({ration_card.status})"})
+                continue
+
+            if ration_card.assigned_shop_id != shop.id:
+                rejected.append({'clientSaleId': client_sale_id, 'reason': f"Security Violation: Card '{card_number}' is assigned to another shop, not your shop ({shop.shop_name})"})
+                continue
+
+            items_input = s.get('items', [])
+            if not items_input or not isinstance(items_input, list):
+                rejected.append({'clientSaleId': client_sale_id, 'reason': 'No items in sale record'})
+                continue
+
+            # Check remaining quota from server database
+            quota_status = get_beneficiary_quota_status(ration_card, month_period=current_month)
+            quota_map = {item['commodity_id']: item for item in quota_status['quota_items']}
+
+            sale_rejected = False
+            rejection_reason = ""
+            validated_items = []
+            total_bill_amount = 0.0
+
+            for itm in items_input:
+                comm_id = itm.get('commodityId')
+                try:
+                    qty = float(itm.get('quantity') or 0.0)
+                except (ValueError, TypeError):
+                    qty = 0.0
+
+                if qty <= 0:
+                    continue
+
+                comm = db.session.get(Commodity, comm_id)
+                if not comm or not comm.is_active:
+                    sale_rejected = True
+                    rejection_reason = f"Commodity ID {comm_id} is invalid or inactive"
+                    break
+
+                comm_quota = quota_map.get(comm.id)
+                remaining_quota = comm_quota['remaining_qty'] if comm_quota else 0.0
+                if qty > (remaining_quota + 0.001):
+                    sale_rejected = True
+                    rejection_reason = f"Quantity {qty} {comm.unit} for {comm.name} exceeds customer remaining quota ({remaining_quota} {comm.unit})"
+                    break
+
+                stock = ShopStock.query.filter_by(shop_id=shop.id, commodity_id=comm.id).first()
+                available_stock = stock.current_stock if stock else 0.0
+                if qty > (available_stock + 0.001):
+                    sale_rejected = True
+                    rejection_reason = f"Quantity {qty} {comm.unit} for {comm.name} exceeds shop available stock ({available_stock} {comm.unit})"
+                    break
+
+                price = comm.price_per_unit
+                if ration_card.card_type == 'AY' and comm.code in ['RICE', 'WHEAT']:
+                    price = 0.0
+                subtotal = round(qty * price, 2)
+                total_bill_amount += subtotal
+
+                validated_items.append({
+                    'commodity': comm,
+                    'commodity_id': comm.id,
+                    'quantity': qty,
+                    'unit_price': price,
+                    'subtotal': subtotal
+                })
+
+            if sale_rejected:
+                rejected.append({'clientSaleId': client_sale_id, 'reason': rejection_reason})
+                continue
+
+            if not validated_items:
+                rejected.append({'clientSaleId': client_sale_id, 'reason': 'No valid positive grain quantities entered'})
+                continue
+
+            # Atomic database generation & stock deduction
+            try:
+                bill_count = DistributionTransaction.query.filter(
+                    DistributionTransaction.month_period == current_month
+                ).count() + 1
+                bill_number = f"BILL-{current_period_bill}-{bill_count:05d}"
+
+                auth_mode = s.get('authMode') or 'Biometric Aadhaar (Offline Verified)'
+                payment_mode = s.get('paymentMode') or 'Cash / Direct Subsidy'
+
+                tx = DistributionTransaction(
+                    bill_number=bill_number,
+                    client_sale_id=client_sale_id,
+                    sync_status='offline_synced',
+                    ration_card_id=ration_card.id,
+                    shop_id=shop.id,
+                    user_id=current_user.id,
+                    transaction_date=datetime.now(),
+                    month_period=current_month,
+                    total_amount=round(total_bill_amount, 2),
+                    payment_mode=payment_mode,
+                    auth_mode=auth_mode,
+                    status='Completed',
+                    notes=f"Offline PWA Synced [{client_sale_id}]"
+                )
+                db.session.add(tx)
+                db.session.flush()
+
+                for v_item in validated_items:
+                    t_item = TransactionItem(
+                        transaction_id=tx.id,
+                        commodity_id=v_item['commodity_id'],
+                        quantity=v_item['quantity'],
+                        unit_price=v_item['unit_price'],
+                        subtotal=v_item['subtotal']
+                    )
+                    db.session.add(t_item)
+
+                    stock = ShopStock.query.filter_by(shop_id=shop.id, commodity_id=v_item['commodity_id']).first()
+                    if stock:
+                        stock.current_stock = max(0.0, round(stock.current_stock - v_item['quantity'], 2))
+                        stock.updated_at = datetime.now()
+
+                log_audit_event(
+                    action='BILL_OFFLINE_SYNCED',
+                    actor_user=current_user,
+                    entity_type='DistributionTransaction',
+                    entity_id=bill_number,
+                    shop_id=shop.id,
+                    outcome='SUCCESS',
+                    reason=f"Offline PWA Bill #{bill_number} synced for Card {ration_card.card_number} (Idempotency Key: {client_sale_id})",
+                    changes={
+                        'bill_number': bill_number,
+                        'client_sale_id': client_sale_id,
+                        'ration_card_number': ration_card.card_number,
+                        'total_amount': round(total_bill_amount, 2),
+                        'items': [{'commodity': vi['commodity'].name, 'qty': vi['quantity']} for vi in validated_items]
+                    },
+                    commit=False
+                )
+
+                db.session.commit()
+
+                synced.append({
+                    'clientSaleId': client_sale_id,
+                    'status': 'accepted',
+                    'billNumber': bill_number,
+                    'transactionId': tx.id,
+                    'totalAmount': round(total_bill_amount, 2)
+                })
+
+            except Exception as e:
+                db.session.rollback()
+                rejected.append({'clientSaleId': client_sale_id, 'reason': f"Database sync transaction error: {str(e)}"})
+
+        return jsonify({
+            'success': True,
+            'synced': synced,
+            'rejected': rejected,
+            'alreadyProcessed': already_processed,
+            'processedCount': len(synced) + len(already_processed) + len(rejected)
+        })
+
     @app.route('/dealer/demand-forecast')
     @role_required('dealer')
     def dealer_demand_forecast():
@@ -605,6 +1164,310 @@ def create_app(config_class=Config):
             shop=shop,
             forecasts=forecasts
         )
+
+    # =========================================================================
+    # DEALER STOCK REPLENISHMENT REQUESTS & PHYSICAL RECEIPT
+    # =========================================================================
+
+    @app.route('/dealer/replenishment-requests', methods=['GET', 'POST'])
+    @role_required('dealer')
+    def dealer_replenishment_requests():
+        if not current_user.shop_id:
+            flash("Account Error: Dealer not assigned to a Fair Price Shop.", "danger")
+            return redirect(url_for('login'))
+        
+        shop = current_user.shop
+        if not shop:
+            abort(404)
+
+        if request.method == 'POST':
+            commodity_id = request.form.get('commodity_id', type=int)
+            requested_qty_val = request.form.get('requested_quantity', '').strip()
+            reason = request.form.get('reason', '').strip()
+
+            # Server-side validation
+            try:
+                requested_qty = float(requested_qty_val)
+            except (ValueError, TypeError):
+                requested_qty = 0.0
+
+            comm = db.session.get(Commodity, commodity_id) if commodity_id else None
+            if not comm:
+                flash("Replenishment Error: Please select a valid commodity.", "danger")
+                return redirect(url_for('dealer_replenishment_requests'))
+
+            if requested_qty <= 0:
+                flash("Replenishment Error: Requested grain quantity must be strictly greater than zero.", "danger")
+                return redirect(url_for('dealer_replenishment_requests', commodity_id=commodity_id))
+
+            if requested_qty > 50000.0:
+                flash("Replenishment Error: Requested quantity exceeds single-request limit of 50,000 kg/L. Contact District Supply Officer.", "danger")
+                return redirect(url_for('dealer_replenishment_requests', commodity_id=commodity_id))
+
+            if not reason or len(reason) < 5:
+                flash("Replenishment Error: A detailed reason (minimum 5 characters) explaining the replenishment need is required.", "danger")
+                return redirect(url_for('dealer_replenishment_requests', commodity_id=commodity_id))
+
+            # Anti-duplicate submission check within 60 seconds
+            recent_duplicate = StockReplenishmentRequest.query.filter(
+                StockReplenishmentRequest.shop_id == shop.id,
+                StockReplenishmentRequest.commodity_id == comm.id,
+                StockReplenishmentRequest.requested_quantity == requested_qty,
+                StockReplenishmentRequest.created_at >= datetime.utcnow() - timedelta(seconds=60)
+            ).first()
+
+            if recent_duplicate:
+                flash(f"Duplicate submission prevented: An identical request (#{recent_duplicate.request_id}) was already submitted a moment ago.", "warning")
+                return redirect(url_for('dealer_replenishment_requests'))
+
+            # Check if there is already an active Pending request for this commodity
+            existing_pending = StockReplenishmentRequest.query.filter_by(
+                shop_id=shop.id,
+                commodity_id=comm.id,
+                status='Pending'
+            ).first()
+
+            if existing_pending:
+                flash(f"Notice: A pending replenishment request (#{existing_pending.request_id} for {existing_pending.requested_quantity} {comm.unit}) already exists for {comm.name}. Please wait for District review.", "warning")
+                return redirect(url_for('dealer_replenishment_requests'))
+
+            # Snapshot current inventory balance
+            stock_rec = ShopStock.query.filter_by(shop_id=shop.id, commodity_id=comm.id).first()
+            current_snapshot = stock_rec.current_stock if stock_rec else 0.0
+
+            # Unique Request ID
+            req_id = f"REQ-{datetime.utcnow().strftime('%Y%m')}-{uuid.uuid4().hex[:5].upper()}"
+
+            new_req = StockReplenishmentRequest(
+                request_id=req_id,
+                dealer_user_id=current_user.id,
+                shop_id=shop.id,
+                commodity_id=comm.id,
+                stock_snapshot=current_snapshot,
+                requested_quantity=requested_qty,
+                approved_quantity=requested_qty,
+                reason=reason,
+                status='Pending',
+                created_at=datetime.utcnow()
+            )
+            db.session.add(new_req)
+
+            # Record audit event
+            log_audit_event(
+                action='REPLENISHMENT_REQUEST_CREATED',
+                actor_user=current_user,
+                entity_type='StockReplenishmentRequest',
+                entity_id=req_id,
+                shop_id=shop.id,
+                outcome='SUCCESS',
+                reason=f"Stock replenishment requested: {requested_qty} {comm.unit} of {comm.name} for Shop {shop.shop_code}",
+                changes={
+                    'request_id': req_id,
+                    'commodity': comm.name,
+                    'requested_quantity': requested_qty,
+                    'stock_snapshot': current_snapshot,
+                    'reason': reason
+                },
+                commit=False
+            )
+
+            db.session.commit()
+            flash(f"Stock replenishment request #{req_id} for {requested_qty} {comm.unit} of {comm.name} submitted successfully!", "success")
+            return redirect(url_for('dealer_replenishment_requests'))
+
+        # GET request handling
+        preselect_comm_id = request.args.get('commodity_id', type=int)
+        status_filter = request.args.get('status', '').strip()
+        
+        commodities = Commodity.query.filter_by(is_active=True).all()
+        stocks = ShopStock.query.filter_by(shop_id=shop.id).all()
+        stock_map = {s.commodity_id: s.current_stock for s in stocks}
+        threshold_map = {s.commodity_id: s.min_threshold for s in stocks}
+
+        query = StockReplenishmentRequest.query.filter_by(shop_id=shop.id)
+        if status_filter:
+            query = query.filter_by(status=status_filter)
+
+        requests_list = query.order_by(StockReplenishmentRequest.created_at.desc()).all()
+
+        total_requests = StockReplenishmentRequest.query.filter_by(shop_id=shop.id).count()
+        pending_count = StockReplenishmentRequest.query.filter_by(shop_id=shop.id, status='Pending').count()
+        approved_count = StockReplenishmentRequest.query.filter_by(shop_id=shop.id, status='Approved').count()
+        fulfilled_count = StockReplenishmentRequest.query.filter_by(shop_id=shop.id, status='Fulfilled').count()
+
+        return render_template(
+            'dealer/replenishment_requests.html',
+            shop=shop,
+            commodities=commodities,
+            stock_map=stock_map,
+            threshold_map=threshold_map,
+            requests=requests_list,
+            preselect_comm_id=preselect_comm_id,
+            status_filter=status_filter,
+            total_requests=total_requests,
+            pending_count=pending_count,
+            approved_count=approved_count,
+            fulfilled_count=fulfilled_count
+        )
+
+    @app.route('/dealer/replenishment-requests/<int:req_id>/cancel', methods=['POST'])
+    @role_required('dealer')
+    def dealer_cancel_replenishment_request(req_id):
+        req = db.session.get(StockReplenishmentRequest, req_id)
+        if not req:
+            abort(404)
+
+        # Strict security: Dealer can only cancel their own shop's requests
+        if req.shop_id != current_user.shop_id:
+            abort(403)
+
+        if req.status != 'Pending':
+            flash(f"Cancellation Rejected: Request #{req.request_id} is '{req.status}' and cannot be cancelled.", "danger")
+            return redirect(url_for('dealer_replenishment_requests'))
+
+        req.status = 'Cancelled'
+        
+        log_audit_event(
+            action='REPLENISHMENT_REQUEST_CANCELLED',
+            actor_user=current_user,
+            entity_type='StockReplenishmentRequest',
+            entity_id=req.request_id,
+            shop_id=req.shop_id,
+            outcome='SUCCESS',
+            reason=f"Replenishment request #{req.request_id} cancelled by Dealer {current_user.username}",
+            changes={'status': 'Cancelled'},
+            commit=False
+        )
+
+        db.session.commit()
+        flash(f"Replenishment request #{req.request_id} has been securely cancelled.", "info")
+        return redirect(url_for('dealer_replenishment_requests'))
+
+    @app.route('/dealer/replenishment-requests/<int:req_id>/receipt', methods=['POST'])
+    @role_required('dealer')
+    def dealer_record_stock_receipt(req_id):
+        req = db.session.get(StockReplenishmentRequest, req_id)
+        if not req:
+            abort(404)
+
+        # Strict cross-shop security: Dealer cannot record receipt for another shop
+        if req.shop_id != current_user.shop_id:
+            abort(403)
+
+        if req.status != 'Approved':
+            flash(f"Receipt Error: Stock receipt can only be recorded for 'Approved' requests. Request #{req.request_id} status is '{req.status}'.", "danger")
+            return redirect(url_for('dealer_replenishment_requests'))
+
+        actual_qty_val = request.form.get('actual_quantity', '').strip()
+        delivery_challan_no = request.form.get('delivery_challan_no', '').strip()
+        notes = request.form.get('notes', '').strip()
+        discrepancy_remarks = request.form.get('discrepancy_remarks', '').strip()
+
+        try:
+            actual_qty = float(actual_qty_val)
+        except (ValueError, TypeError):
+            actual_qty = 0.0
+
+        if actual_qty <= 0:
+            flash("Stock Receipt Rejected: Actual received quantity must be greater than zero.", "danger")
+            return redirect(url_for('dealer_replenishment_requests'))
+
+        approved_qty = req.approved_quantity or req.requested_quantity
+        
+        # Discrepancy enforcement
+        if round(actual_qty, 2) != round(approved_qty, 2):
+            if not discrepancy_remarks or len(discrepancy_remarks) < 5:
+                flash(f"Stock Receipt Rejected: Actual received quantity ({actual_qty} {req.commodity.unit}) differs from approved quantity ({approved_qty} {req.commodity.unit}). Detailed discrepancy remarks (minimum 5 characters) are strictly mandatory.", "danger")
+                return redirect(url_for('dealer_replenishment_requests'))
+
+        # Gross excess check (cannot exceed 50% buffer over approved without district supply re-approval)
+        if actual_qty > approved_qty * 1.5:
+            flash(f"Stock Receipt Rejected: Delivered quantity ({actual_qty} {req.commodity.unit}) exceeds allowable 50% buffer over approved allocation ({approved_qty} {req.commodity.unit}). Over-delivery blocked without prior District DSO authorization.", "danger")
+            return redirect(url_for('dealer_replenishment_requests'))
+
+        # Atomic transaction: Stock receipt record + inventory update
+        try:
+            # Re-verify status inside transaction
+            if req.status != 'Approved':
+                flash(f"Receipt Error: Request #{req.request_id} is no longer awaiting receipt.", "danger")
+                return redirect(url_for('dealer_replenishment_requests'))
+
+            stock = ShopStock.query.filter_by(shop_id=req.shop_id, commodity_id=req.commodity_id).first()
+            if not stock:
+                stock = ShopStock(
+                    shop_id=req.shop_id,
+                    commodity_id=req.commodity_id,
+                    current_stock=0.0,
+                    min_threshold=150.0
+                )
+                db.session.add(stock)
+                db.session.flush()
+
+            previous_stock = stock.current_stock
+            new_stock = round(previous_stock + actual_qty, 2)
+            stock.current_stock = new_stock
+            stock.last_replenished_at = datetime.utcnow()
+            stock.updated_at = datetime.utcnow()
+
+            req.status = 'Fulfilled'
+
+            rcp_id = f"RCP-{datetime.utcnow().strftime('%Y%m')}-{uuid.uuid4().hex[:5].upper()}"
+            receipt = StockReceipt(
+                receipt_id=rcp_id,
+                request_id=req.id,
+                shop_id=req.shop_id,
+                commodity_id=req.commodity_id,
+                quantity_received=actual_qty,
+                previous_stock=previous_stock,
+                new_stock=new_stock,
+                received_by_user_id=current_user.id,
+                received_at=datetime.utcnow(),
+                delivery_challan_no=delivery_challan_no or None,
+                notes=notes or None,
+                discrepancy_remarks=discrepancy_remarks or None
+            )
+            db.session.add(receipt)
+
+            log_audit_event(
+                action='STOCK_RECEIPT_RECORDED',
+                actor_user=current_user,
+                entity_type='StockReceipt',
+                entity_id=rcp_id,
+                shop_id=req.shop_id,
+                outcome='SUCCESS',
+                reason=f"Stock received: {actual_qty} {req.commodity.unit} of {req.commodity.name} at Shop {req.shop.shop_code} (Receipt #{rcp_id})",
+                changes={
+                    'receipt_id': rcp_id,
+                    'request_id': req.request_id,
+                    'shop_id': req.shop_id,
+                    'commodity': req.commodity.name,
+                    'previous_stock': previous_stock,
+                    'quantity_received': actual_qty,
+                    'new_stock': new_stock,
+                    'delivery_challan_no': delivery_challan_no,
+                    'notes': notes,
+                    'discrepancy_remarks': discrepancy_remarks
+                },
+                commit=False
+            )
+
+            db.session.commit()
+            flash(f"Stock receipt #{rcp_id} recorded successfully! Inventory for {req.commodity.name} updated from {previous_stock} to {new_stock} {req.commodity.unit}.", "success")
+            return redirect(url_for('dealer_replenishment_requests'))
+        except Exception as e:
+            db.session.rollback()
+            log_audit_event(
+                action='STOCK_RECEIPT_FAILED',
+                actor_user=current_user,
+                entity_type='StockReceipt',
+                entity_id=None,
+                shop_id=req.shop_id,
+                outcome='FAILURE',
+                reason=f"Stock receipt error: {str(e)}",
+                commit=True
+            )
+            flash(f"Transaction Error: Stock receipt recording failed ({str(e)}). Inventory was NOT updated.", "danger")
+            return redirect(url_for('dealer_replenishment_requests'))
 
     # =========================================================================
     # ADMIN PORTAL
@@ -710,6 +1573,27 @@ def create_app(config_class=Config):
                     d_user.set_password(dealer_password or 'dealer123')
                     db.session.add(d_user)
 
+                log_audit_event(
+                    action='SHOP_CREATED',
+                    actor_user=current_user,
+                    entity_type='FairPriceShop',
+                    entity_id=str(new_shop.id),
+                    shop_id=new_shop.id,
+                    outcome='SUCCESS',
+                    reason=f"Fair Price Shop '{shop_name}' ({shop_code}) registered by {current_user.username}",
+                    changes={
+                        'shop_code': shop_code,
+                        'shop_name': shop_name,
+                        'dealer_name': dealer_name,
+                        'license_no': license_no,
+                        'contact_no': contact_no,
+                        'ward': ward,
+                        'district': district,
+                        'dealer_username': dealer_username
+                    },
+                    commit=False
+                )
+
                 db.session.commit()
                 flash(f"Fair Price Shop '{shop_name}' ({shop_code}) registered successfully!", 'success')
                 return redirect(url_for('admin_shops'))
@@ -723,13 +1607,41 @@ def create_app(config_class=Config):
         shop = db.session.get(FairPriceShop, shop_id)
         if not shop:
             abort(404)
+        
+        before_state = {
+            'shop_name': shop.shop_name,
+            'dealer_name': shop.dealer_name,
+            'contact_no': shop.contact_no,
+            'address': shop.address,
+            'ward': shop.ward,
+            'status': shop.status
+        }
         shop.shop_name = request.form.get('shop_name', shop.shop_name)
         shop.dealer_name = request.form.get('dealer_name', shop.dealer_name)
         shop.contact_no = request.form.get('contact_no', shop.contact_no)
         shop.address = request.form.get('address', shop.address)
         shop.ward = request.form.get('ward', shop.ward)
         shop.status = request.form.get('status', shop.status)
+        after_state = {
+            'shop_name': shop.shop_name,
+            'dealer_name': shop.dealer_name,
+            'contact_no': shop.contact_no,
+            'address': shop.address,
+            'ward': shop.ward,
+            'status': shop.status
+        }
         
+        log_audit_event(
+            action='SHOP_UPDATED',
+            actor_user=current_user,
+            entity_type='FairPriceShop',
+            entity_id=str(shop.id),
+            shop_id=shop.id,
+            outcome='SUCCESS',
+            reason=f"Fair Price Shop '{shop.shop_code}' details updated",
+            changes={'before': before_state, 'after': after_state},
+            commit=False
+        )
         db.session.commit()
         flash(f"Updated details for Fair Price Shop {shop.shop_code}.", 'success')
         return redirect(url_for('admin_shops'))
@@ -774,6 +1686,28 @@ def create_app(config_class=Config):
                     aadhaar_last4=aadhaar_last4
                 )
                 db.session.add(head_member)
+
+                log_audit_event(
+                    action='CUSTOMER_CREATED',
+                    actor_user=current_user,
+                    entity_type='RationCard',
+                    entity_id=str(new_card.id),
+                    shop_id=assigned_shop_id,
+                    outcome='SUCCESS',
+                    reason=f"Ration Card '{card_number}' ({card_type}) registered by {current_user.username}",
+                    changes={
+                        'card_number': card_number,
+                        'card_type': card_type,
+                        'head_of_family': head_of_family,
+                        'family_members_count': family_members,
+                        'aadhaar_last4': aadhaar_last4,
+                        'mobile': mobile,
+                        'address': address,
+                        'assigned_shop_id': assigned_shop_id
+                    },
+                    commit=False
+                )
+
                 db.session.commit()
                 flash(f"Ration Card {card_number} ({card_type}) registered successfully!", 'success')
                 return redirect(url_for('admin_beneficiaries'))
@@ -811,9 +1745,26 @@ def create_app(config_class=Config):
     def delete_beneficiary(card_id):
         card = db.session.get(RationCard, card_id)
         if card:
+            card_info = {
+                'card_number': card.card_number,
+                'card_type': card.card_type,
+                'head_of_family': card.head_of_family,
+                'assigned_shop_id': card.assigned_shop_id
+            }
             # Manually delete family members if CASCADE is not working or to be safe
             FamilyMember.query.filter_by(ration_card_id=card.id).delete()
             db.session.delete(card)
+            log_audit_event(
+                action='CUSTOMER_DELETED',
+                actor_user=current_user,
+                entity_type='RationCard',
+                entity_id=str(card_id),
+                shop_id=card_info['assigned_shop_id'],
+                outcome='SUCCESS',
+                reason=f"Ration Card '{card_info['card_number']}' deleted by {current_user.username}",
+                changes={'deleted_card': card_info},
+                commit=False
+            )
             db.session.commit()
             flash('Beneficiary deleted successfully.', 'success')
         return redirect(url_for('admin_beneficiaries'))
@@ -823,9 +1774,30 @@ def create_app(config_class=Config):
     def edit_beneficiary(card_id):
         card = db.session.get(RationCard, card_id)
         if card:
+            before_state = {
+                'head_of_family': card.head_of_family,
+                'family_members_count': card.family_members_count,
+                'mobile': card.mobile
+            }
             card.head_of_family = request.form.get('head_of_family', card.head_of_family)
             card.family_members_count = int(request.form.get('family_members_count', card.family_members_count))
             card.mobile = request.form.get('mobile', card.mobile)
+            after_state = {
+                'head_of_family': card.head_of_family,
+                'family_members_count': card.family_members_count,
+                'mobile': card.mobile
+            }
+            log_audit_event(
+                action='CUSTOMER_UPDATED',
+                actor_user=current_user,
+                entity_type='RationCard',
+                entity_id=str(card.id),
+                shop_id=card.assigned_shop_id,
+                outcome='SUCCESS',
+                reason=f"Ration Card '{card.card_number}' details updated by {current_user.username}",
+                changes={'before': before_state, 'after': after_state},
+                commit=False
+            )
             db.session.commit()
             flash('Beneficiary details updated.', 'success')
         return redirect(url_for('admin_beneficiaries'))
@@ -869,6 +1841,25 @@ def create_app(config_class=Config):
                     )
                     db.session.add(new_stock)
 
+            log_audit_event(
+                action='ALLOCATION_DISPATCHED',
+                actor_user=current_user,
+                entity_type='GrainAllocation',
+                entity_id=alloc_code,
+                shop_id=shop_id,
+                outcome='SUCCESS',
+                reason=f"Grain Allocation #{alloc_code} dispatched to Shop {shop_id}",
+                changes={
+                    'allocation_code': alloc_code,
+                    'shop_id': shop_id,
+                    'commodity_id': commodity_id,
+                    'allocated_qty': allocated_qty,
+                    'allocation_month': allocation_month,
+                    'status': status
+                },
+                commit=False
+            )
+
             db.session.commit()
             flash(f"PDS Grain Allocation #{alloc_code} dispatched successfully!", 'success')
             return redirect(url_for('admin_allocations'))
@@ -901,7 +1892,14 @@ def create_app(config_class=Config):
             return redirect(url_for('admin_allocations'))
 
         rule = AllocationRule.query.filter_by(card_type=card_type, commodity_id=commodity_id).first()
+        before_state = None
         if rule:
+            before_state = {
+                'allocation_basis': rule.allocation_basis,
+                'quantity_per_unit': rule.quantity_per_unit,
+                'unit': rule.unit,
+                'is_active': rule.is_active
+            }
             rule.allocation_basis = allocation_basis
             rule.quantity_per_unit = quantity_per_unit
             rule.unit = unit
@@ -919,6 +1917,24 @@ def create_app(config_class=Config):
             )
             db.session.add(rule)
             action_name = "created"
+
+        after_state = {
+            'allocation_basis': rule.allocation_basis,
+            'quantity_per_unit': rule.quantity_per_unit,
+            'unit': rule.unit,
+            'is_active': rule.is_active
+        }
+        log_audit_event(
+            action='ALLOCATION_RULE_UPDATED',
+            actor_user=current_user,
+            entity_type='AllocationRule',
+            entity_id=f"{card_type}_{commodity_id}",
+            shop_id=None,
+            outcome='SUCCESS',
+            reason=f"Entitlement Allocation Rule for {card_type} {action_name} by {current_user.username}",
+            changes={'card_type': card_type, 'commodity_id': commodity_id, 'before': before_state, 'after': after_state},
+            commit=False
+        )
 
         db.session.commit()
         flash(f"Entitlement Allocation Rule for {card_type} {action_name} successfully!", "success")
@@ -977,6 +1993,10 @@ def create_app(config_class=Config):
         min_threshold = float(request.form.get('min_threshold', 150.0))
         
         stock = ShopStock.query.filter_by(shop_id=shop_id, commodity_id=commodity_id).first()
+        before_state = {
+            'current_stock': stock.current_stock if stock else 0.0,
+            'min_threshold': stock.min_threshold if stock else 150.0
+        }
         if stock:
             stock.current_stock = max(0.0, new_stock_qty)
             stock.min_threshold = max(10.0, min_threshold)
@@ -989,6 +2009,22 @@ def create_app(config_class=Config):
                 min_threshold=min_threshold
             )
             db.session.add(stock)
+
+        after_state = {
+            'current_stock': stock.current_stock,
+            'min_threshold': stock.min_threshold
+        }
+        log_audit_event(
+            action='STOCK_ADJUSTED',
+            actor_user=current_user,
+            entity_type='ShopStock',
+            entity_id=f"Shop-{shop_id}-Comm-{commodity_id}",
+            shop_id=shop_id,
+            outcome='SUCCESS',
+            reason=f"Stock adjusted for Shop {shop_id}, Commodity {commodity_id} by {current_user.username}",
+            changes={'commodity_id': commodity_id, 'before': before_state, 'after': after_state},
+            commit=False
+        )
             
         db.session.commit()
         flash('Shop inventory & alert threshold updated successfully.', 'success')
@@ -1047,8 +2083,27 @@ def create_app(config_class=Config):
         action_status = request.form.get('status', 'Resolved')
         notes = request.form.get('resolution_notes', '').strip()
         
+        before_state = {
+            'status': anomaly.status,
+            'resolution_notes': anomaly.resolution_notes
+        }
         anomaly.status = action_status
         anomaly.resolution_notes = notes
+        after_state = {
+            'status': action_status,
+            'resolution_notes': notes
+        }
+        log_audit_event(
+            action='ANOMALY_RESOLVED',
+            actor_user=current_user,
+            entity_type='AnomalyLog',
+            entity_id=str(anomaly_id),
+            shop_id=anomaly.shop_id,
+            outcome='SUCCESS',
+            reason=f"Anomaly #{anomaly_id} status updated to '{action_status}' by {current_user.username}",
+            changes={'before': before_state, 'after': after_state},
+            commit=False
+        )
         db.session.commit()
         
         flash(f"Anomaly status updated to '{action_status}'.", 'success')
@@ -1428,6 +2483,19 @@ def create_app(config_class=Config):
             created_at=datetime.utcnow()
         )
         db.session.add(audit)
+
+        log_audit_event(
+            action='COMPLAINT_STATUS_UPDATED',
+            actor_user=current_user,
+            entity_type='Grievance',
+            entity_id=grv.grievance_code,
+            shop_id=grv.shop_id,
+            outcome='SUCCESS',
+            reason=f"Complaint #{grv.grievance_code} status updated to '{new_status}' by Admin {current_user.username}",
+            changes={'before': {'status': old_status}, 'after': {'status': new_status, 'remarks': remarks}},
+            commit=False
+        )
+
         db.session.commit()
 
         flash(f"Complaint #{grv.grievance_code} status updated to '{new_status}' with audit trail recorded.", 'success')
@@ -1525,6 +2593,19 @@ def create_app(config_class=Config):
             created_at=datetime.utcnow()
         )
         db.session.add(audit)
+
+        log_audit_event(
+            action='COMPLAINT_STATUS_UPDATED',
+            actor_user=current_user,
+            entity_type='Grievance',
+            entity_id=complaint.grievance_code,
+            shop_id=complaint.shop_id,
+            outcome='SUCCESS',
+            reason=f"Complaint #{complaint.grievance_code} status updated to '{new_status}' by Dealer {current_user.username}",
+            changes={'before': {'status': old_status}, 'after': {'status': new_status, 'remarks': remarks}},
+            commit=False
+        )
+
         db.session.commit()
 
         flash(f"Complaint #{complaint.grievance_code} updated successfully.", "success")
@@ -1762,6 +2843,521 @@ def create_app(config_class=Config):
             'labels': labels,
             'counts': counts
         })
+
+    # =========================================================================
+    # AUDIT LOG & ACTIVITY TRACKING DASHBOARD (ADMIN ONLY)
+    # =========================================================================
+
+    @app.route('/admin/audit-logs')
+    @role_required('admin', 'inspector')
+    def admin_audit_logs():
+        page = request.args.get('page', 1, type=int)
+        per_page = 20
+
+        search_q = request.args.get('search', '').strip()
+        action_filter = request.args.get('action', '').strip()
+        entity_filter = request.args.get('entity_type', '').strip()
+        role_filter = request.args.get('role', '').strip()
+        outcome_filter = request.args.get('outcome', '').strip()
+        shop_filter = request.args.get('shop_id', '').strip()
+        from_date = request.args.get('from_date', '').strip()
+        to_date = request.args.get('to_date', '').strip()
+
+        query = AuditLog.query
+
+        if search_q:
+            query = query.filter(
+                (AuditLog.event_id.ilike(f"%{search_q}%")) |
+                (AuditLog.actor_identifier.ilike(f"%{search_q}%")) |
+                (AuditLog.entity_id.ilike(f"%{search_q}%")) |
+                (AuditLog.reason.ilike(f"%{search_q}%"))
+            )
+
+        if action_filter:
+            query = query.filter(AuditLog.action == action_filter)
+
+        if entity_filter:
+            query = query.filter(AuditLog.entity_type == entity_filter)
+
+        if role_filter:
+            query = query.filter(AuditLog.actor_role == role_filter)
+
+        if outcome_filter:
+            query = query.filter(AuditLog.outcome == outcome_filter)
+
+        if shop_filter:
+            try:
+                s_id = int(shop_filter)
+                query = query.filter(AuditLog.shop_id == s_id)
+            except ValueError:
+                pass
+
+        if from_date:
+            try:
+                from_dt = datetime.strptime(from_date, '%Y-%m-%d')
+                query = query.filter(AuditLog.timestamp >= from_dt)
+            except ValueError:
+                pass
+
+        if to_date:
+            try:
+                to_dt = datetime.strptime(to_date, '%Y-%m-%d') + timedelta(days=1)
+                query = query.filter(AuditLog.timestamp < to_dt)
+            except ValueError:
+                pass
+
+        # Calculate metrics for current query
+        total_count = query.count()
+        success_count = query.filter(AuditLog.outcome == 'SUCCESS').count()
+        failure_count = query.filter(AuditLog.outcome == 'FAILURE').count()
+        denied_count = query.filter(AuditLog.outcome == 'DENIED').count()
+
+        # Server-side pagination
+        pagination = query.order_by(AuditLog.timestamp.desc(), AuditLog.id.desc()).paginate(
+            page=page, per_page=per_page, error_out=False
+        )
+        logs = pagination.items
+
+        # Distinct actions and entities for filter dropdowns
+        action_types = [r[0] for r in db.session.query(AuditLog.action).distinct().order_by(AuditLog.action).all() if r[0]]
+        entity_types = [r[0] for r in db.session.query(AuditLog.entity_type).distinct().order_by(AuditLog.entity_type).all() if r[0]]
+        shops = FairPriceShop.query.order_by(FairPriceShop.shop_code).all()
+
+        current_filters = {
+            'search': search_q,
+            'action': action_filter,
+            'entity_type': entity_filter,
+            'role': role_filter,
+            'outcome': outcome_filter,
+            'shop_id': shop_filter,
+            'from_date': from_date,
+            'to_date': to_date
+        }
+
+        return render_template(
+            'admin/audit_logs.html',
+            logs=logs,
+            pagination=pagination,
+            total_count=total_count,
+            success_count=success_count,
+            failure_count=failure_count,
+            denied_count=denied_count,
+            search_q=search_q,
+            action_filter=action_filter,
+            entity_filter=entity_filter,
+            role_filter=role_filter,
+            outcome_filter=outcome_filter,
+            shop_filter=shop_filter,
+            from_date=from_date,
+            to_date=to_date,
+            action_types=action_types,
+            entity_types=entity_types,
+            shops=shops,
+            current_filters=current_filters
+        )
+
+    @app.route('/admin/audit-logs/export')
+    @role_required('admin', 'inspector')
+    def admin_audit_logs_export():
+        search_q = request.args.get('search', '').strip()
+        action_filter = request.args.get('action', '').strip()
+        entity_filter = request.args.get('entity_type', '').strip()
+        role_filter = request.args.get('role', '').strip()
+        outcome_filter = request.args.get('outcome', '').strip()
+        shop_filter = request.args.get('shop_id', '').strip()
+        from_date = request.args.get('from_date', '').strip()
+        to_date = request.args.get('to_date', '').strip()
+
+        query = AuditLog.query
+
+        if search_q:
+            query = query.filter(
+                (AuditLog.event_id.ilike(f"%{search_q}%")) |
+                (AuditLog.actor_identifier.ilike(f"%{search_q}%")) |
+                (AuditLog.entity_id.ilike(f"%{search_q}%")) |
+                (AuditLog.reason.ilike(f"%{search_q}%"))
+            )
+
+        if action_filter:
+            query = query.filter(AuditLog.action == action_filter)
+
+        if entity_filter:
+            query = query.filter(AuditLog.entity_type == entity_filter)
+
+        if role_filter:
+            query = query.filter(AuditLog.actor_role == role_filter)
+
+        if outcome_filter:
+            query = query.filter(AuditLog.outcome == outcome_filter)
+
+        if shop_filter:
+            try:
+                s_id = int(shop_filter)
+                query = query.filter(AuditLog.shop_id == s_id)
+            except ValueError:
+                pass
+
+        if from_date:
+            try:
+                from_dt = datetime.strptime(from_date, '%Y-%m-%d')
+                query = query.filter(AuditLog.timestamp >= from_dt)
+            except ValueError:
+                pass
+
+        if to_date:
+            try:
+                to_dt = datetime.strptime(to_date, '%Y-%m-%d') + timedelta(days=1)
+                query = query.filter(AuditLog.timestamp < to_dt)
+            except ValueError:
+                pass
+
+        all_logs = query.order_by(AuditLog.timestamp.desc(), AuditLog.id.desc()).all()
+
+        # Audit log event for exporting
+        log_audit_event(
+            action='AUDIT_LOG_EXPORTED',
+            actor_user=current_user,
+            entity_type='AuditLog',
+            entity_id=None,
+            shop_id=None,
+            outcome='SUCCESS',
+            reason=f"Audit logs exported to CSV ({len(all_logs)} records) by {current_user.username}",
+            changes={'exported_count': len(all_logs), 'filters': request.args.to_dict()},
+            commit=True
+        )
+
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # Headers
+        writer.writerow([
+            'Event ID',
+            'Timestamp (UTC)',
+            'Actor ID',
+            'Actor Role',
+            'Actor Identifier',
+            'Action',
+            'Entity Type',
+            'Entity ID',
+            'Shop ID',
+            'Shop Code',
+            'Outcome',
+            'Reason',
+            'IP Address',
+            'Changes JSON'
+        ])
+
+        for log in all_logs:
+            writer.writerow([
+                escape_csv_value(log.event_id),
+                escape_csv_value(log.timestamp.strftime('%Y-%m-%d %H:%M:%S') if log.timestamp else ''),
+                escape_csv_value(log.actor_user_id or 'N/A'),
+                escape_csv_value(log.actor_role),
+                escape_csv_value(log.actor_identifier),
+                escape_csv_value(log.action),
+                escape_csv_value(log.entity_type),
+                escape_csv_value(log.entity_id or 'N/A'),
+                escape_csv_value(log.shop_id or 'N/A'),
+                escape_csv_value(log.shop.shop_code if log.shop else 'N/A'),
+                escape_csv_value(log.outcome),
+                escape_csv_value(log.reason or ''),
+                escape_csv_value(log.ip_address or ''),
+                escape_csv_value(log.changes or '')
+            ])
+
+        output.seek(0)
+        bytes_io = io.BytesIO(output.getvalue().encode('utf-8'))
+        filename = f"rationsmart_audit_logs_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.csv"
+
+        return send_file(
+            bytes_io,
+            mimetype='text/csv',
+            as_attachment=True,
+            download_name=filename
+        )
+
+    # =========================================================================
+    # ADMIN STOCK REPLENISHMENT REQUESTS & APPROVAL MANAGEMENT
+    # =========================================================================
+
+    @app.route('/admin/replenishment-requests')
+    @role_required('admin', 'inspector')
+    def admin_replenishment_requests():
+        search_q = request.args.get('search', '').strip()
+        shop_filter = request.args.get('shop_id', type=int)
+        commodity_filter = request.args.get('commodity_id', type=int)
+        status_filter = request.args.get('status', '').strip()
+        date_filter = request.args.get('date', '').strip()
+
+        query = StockReplenishmentRequest.query
+
+        if search_q:
+            query = query.join(FairPriceShop, StockReplenishmentRequest.shop_id == FairPriceShop.id).join(
+                Commodity, StockReplenishmentRequest.commodity_id == Commodity.id
+            ).filter(
+                (StockReplenishmentRequest.request_id.ilike(f"%{search_q}%")) |
+                (StockReplenishmentRequest.reason.ilike(f"%{search_q}%")) |
+                (FairPriceShop.shop_code.ilike(f"%{search_q}%")) |
+                (FairPriceShop.shop_name.ilike(f"%{search_q}%")) |
+                (FairPriceShop.dealer_name.ilike(f"%{search_q}%")) |
+                (Commodity.name.ilike(f"%{search_q}%"))
+            )
+
+        if shop_filter:
+            query = query.filter(StockReplenishmentRequest.shop_id == shop_filter)
+
+        if commodity_filter:
+            query = query.filter(StockReplenishmentRequest.commodity_id == commodity_filter)
+
+        if status_filter:
+            query = query.filter(StockReplenishmentRequest.status == status_filter)
+
+        if date_filter:
+            try:
+                d_obj = datetime.strptime(date_filter, '%Y-%m-%d').date()
+                query = query.filter(db.func.date(StockReplenishmentRequest.created_at) == d_obj)
+            except ValueError:
+                pass
+
+        requests_list = query.order_by(StockReplenishmentRequest.created_at.desc()).all()
+
+        total_count = StockReplenishmentRequest.query.count()
+        pending_count = StockReplenishmentRequest.query.filter_by(status='Pending').count()
+        approved_count = StockReplenishmentRequest.query.filter_by(status='Approved').count()
+        fulfilled_count = StockReplenishmentRequest.query.filter_by(status='Fulfilled').count()
+        rejected_count = StockReplenishmentRequest.query.filter_by(status='Rejected').count()
+
+        shops = FairPriceShop.query.order_by(FairPriceShop.shop_code).all()
+        commodities = Commodity.query.filter_by(is_active=True).all()
+
+        return render_template(
+            'admin/replenishment_requests.html',
+            requests=requests_list,
+            shops=shops,
+            commodities=commodities,
+            search_q=search_q,
+            shop_filter=shop_filter,
+            commodity_filter=commodity_filter,
+            status_filter=status_filter,
+            date_filter=date_filter,
+            total_count=total_count,
+            pending_count=pending_count,
+            approved_count=approved_count,
+            fulfilled_count=fulfilled_count,
+            rejected_count=rejected_count
+        )
+
+    @app.route('/admin/replenishment-requests/<int:req_id>/approve', methods=['POST'])
+    @role_required('admin', 'inspector')
+    def admin_approve_replenishment_request(req_id):
+        req = db.session.get(StockReplenishmentRequest, req_id)
+        if not req:
+            abort(404)
+
+        if req.status != 'Pending':
+            flash(f"Approval Rejected: Request #{req.request_id} has status '{req.status}' and cannot be approved.", "danger")
+            return redirect(url_for('admin_replenishment_requests'))
+
+        approved_qty_val = request.form.get('approved_quantity', '').strip()
+        remarks = request.form.get('remarks', '').strip()
+
+        try:
+            approved_qty = float(approved_qty_val) if approved_qty_val else req.requested_quantity
+        except (ValueError, TypeError):
+            approved_qty = req.requested_quantity
+
+        if approved_qty <= 0:
+            flash("Approval Error: Approved quantity must be greater than zero.", "danger")
+            return redirect(url_for('admin_replenishment_requests'))
+
+        # Approve request — IMPORTANT: Physical inventory is NOT increased on approval!
+        req.status = 'Approved'
+        req.approved_quantity = approved_qty
+        req.admin_user_id = current_user.id
+        req.admin_remarks = remarks or "Approved by District Administration"
+        req.decided_at = datetime.utcnow()
+
+        log_audit_event(
+            action='REPLENISHMENT_REQUEST_APPROVED',
+            actor_user=current_user,
+            entity_type='StockReplenishmentRequest',
+            entity_id=req.request_id,
+            shop_id=req.shop_id,
+            outcome='SUCCESS',
+            reason=f"Replenishment request #{req.request_id} approved for {approved_qty} {req.commodity.unit} of {req.commodity.name} by {current_user.username}",
+            changes={
+                'request_id': req.request_id,
+                'requested_quantity': req.requested_quantity,
+                'approved_quantity': approved_qty,
+                'remarks': req.admin_remarks
+            },
+            commit=False
+        )
+
+        db.session.commit()
+        flash(f"Replenishment request #{req.request_id} approved successfully for {approved_qty} {req.commodity.unit}! Stock will be updated upon physical delivery receipt.", "success")
+        return redirect(url_for('admin_replenishment_requests'))
+
+    @app.route('/admin/replenishment-requests/<int:req_id>/reject', methods=['POST'])
+    @role_required('admin', 'inspector')
+    def admin_reject_replenishment_request(req_id):
+        req = db.session.get(StockReplenishmentRequest, req_id)
+        if not req:
+            abort(404)
+
+        if req.status != 'Pending':
+            flash(f"Rejection Error: Request #{req.request_id} has status '{req.status}' and cannot be rejected.", "danger")
+            return redirect(url_for('admin_replenishment_requests'))
+
+        remarks = request.form.get('remarks', '').strip()
+        if not remarks or len(remarks) < 3:
+            flash("Rejection Error: Explanatory remarks (minimum 3 characters) are strictly required when rejecting a replenishment request.", "danger")
+            return redirect(url_for('admin_replenishment_requests'))
+
+        req.status = 'Rejected'
+        req.admin_user_id = current_user.id
+        req.admin_remarks = remarks
+        req.decided_at = datetime.utcnow()
+
+        log_audit_event(
+            action='REPLENISHMENT_REQUEST_REJECTED',
+            actor_user=current_user,
+            entity_type='StockReplenishmentRequest',
+            entity_id=req.request_id,
+            shop_id=req.shop_id,
+            outcome='SUCCESS',
+            reason=f"Replenishment request #{req.request_id} rejected by {current_user.username}: {remarks}",
+            changes={
+                'request_id': req.request_id,
+                'remarks': remarks
+            },
+            commit=False
+        )
+
+        db.session.commit()
+        flash(f"Replenishment request #{req.request_id} has been rejected.", "info")
+        return redirect(url_for('admin_replenishment_requests'))
+
+    @app.route('/admin/replenishment-requests/<int:req_id>/receipt', methods=['POST'])
+    @role_required('admin', 'inspector')
+    def admin_record_stock_receipt(req_id):
+        req = db.session.get(StockReplenishmentRequest, req_id)
+        if not req:
+            abort(404)
+
+        if req.status != 'Approved':
+            flash(f"Receipt Error: Stock receipt can only be recorded for 'Approved' requests. Request #{req.request_id} status is '{req.status}'.", "danger")
+            return redirect(url_for('admin_replenishment_requests'))
+
+        actual_qty_val = request.form.get('actual_quantity', '').strip()
+        delivery_challan_no = request.form.get('delivery_challan_no', '').strip()
+        notes = request.form.get('notes', '').strip()
+        discrepancy_remarks = request.form.get('discrepancy_remarks', '').strip()
+
+        try:
+            actual_qty = float(actual_qty_val)
+        except (ValueError, TypeError):
+            actual_qty = 0.0
+
+        if actual_qty <= 0:
+            flash("Stock Receipt Rejected: Actual received quantity must be greater than zero.", "danger")
+            return redirect(url_for('admin_replenishment_requests'))
+
+        approved_qty = req.approved_quantity or req.requested_quantity
+        
+        # Discrepancy enforcement
+        if round(actual_qty, 2) != round(approved_qty, 2):
+            if not discrepancy_remarks or len(discrepancy_remarks) < 5:
+                flash(f"Stock Receipt Rejected: Actual received quantity ({actual_qty} {req.commodity.unit}) differs from approved quantity ({approved_qty} {req.commodity.unit}). Detailed discrepancy remarks are strictly mandatory.", "danger")
+                return redirect(url_for('admin_replenishment_requests'))
+
+        # Gross excess check
+        if actual_qty > approved_qty * 1.5:
+            flash(f"Stock Receipt Rejected: Delivered quantity ({actual_qty} {req.commodity.unit}) exceeds allowable 50% buffer over approved allocation ({approved_qty} {req.commodity.unit}).", "danger")
+            return redirect(url_for('admin_replenishment_requests'))
+
+        # Atomic transaction: Stock receipt record + inventory update
+        try:
+            if req.status != 'Approved':
+                flash(f"Receipt Error: Request #{req.request_id} is no longer awaiting receipt.", "danger")
+                return redirect(url_for('admin_replenishment_requests'))
+
+            stock = ShopStock.query.filter_by(shop_id=req.shop_id, commodity_id=req.commodity_id).first()
+            if not stock:
+                stock = ShopStock(
+                    shop_id=req.shop_id,
+                    commodity_id=req.commodity_id,
+                    current_stock=0.0,
+                    min_threshold=150.0
+                )
+                db.session.add(stock)
+                db.session.flush()
+
+            previous_stock = stock.current_stock
+            new_stock = round(previous_stock + actual_qty, 2)
+            stock.current_stock = new_stock
+            stock.last_replenished_at = datetime.utcnow()
+            stock.updated_at = datetime.utcnow()
+
+            req.status = 'Fulfilled'
+
+            rcp_id = f"RCP-{datetime.utcnow().strftime('%Y%m')}-{uuid.uuid4().hex[:5].upper()}"
+            receipt = StockReceipt(
+                receipt_id=rcp_id,
+                request_id=req.id,
+                shop_id=req.shop_id,
+                commodity_id=req.commodity_id,
+                quantity_received=actual_qty,
+                previous_stock=previous_stock,
+                new_stock=new_stock,
+                received_by_user_id=current_user.id,
+                received_at=datetime.utcnow(),
+                delivery_challan_no=delivery_challan_no or None,
+                notes=notes or None,
+                discrepancy_remarks=discrepancy_remarks or None
+            )
+            db.session.add(receipt)
+
+            log_audit_event(
+                action='STOCK_RECEIPT_RECORDED',
+                actor_user=current_user,
+                entity_type='StockReceipt',
+                entity_id=rcp_id,
+                shop_id=req.shop_id,
+                outcome='SUCCESS',
+                reason=f"Stock receipt #{rcp_id} recorded for Shop {req.shop.shop_code} ({actual_qty} {req.commodity.unit} of {req.commodity.name}) by Admin {current_user.username}",
+                changes={
+                    'receipt_id': rcp_id,
+                    'request_id': req.request_id,
+                    'shop_id': req.shop_id,
+                    'commodity': req.commodity.name,
+                    'previous_stock': previous_stock,
+                    'quantity_received': actual_qty,
+                    'new_stock': new_stock,
+                    'delivery_challan_no': delivery_challan_no,
+                    'notes': notes,
+                    'discrepancy_remarks': discrepancy_remarks
+                },
+                commit=False
+            )
+
+            db.session.commit()
+            flash(f"Stock receipt #{rcp_id} recorded successfully! Inventory for Shop {req.shop.shop_code} updated from {previous_stock} to {new_stock} {req.commodity.unit}.", "success")
+            return redirect(url_for('admin_replenishment_requests'))
+        except Exception as e:
+            db.session.rollback()
+            log_audit_event(
+                action='STOCK_RECEIPT_FAILED',
+                actor_user=current_user,
+                entity_type='StockReceipt',
+                entity_id=None,
+                shop_id=req.shop_id,
+                outcome='FAILURE',
+                reason=f"Stock receipt error: {str(e)}",
+                commit=True
+            )
+            flash(f"Transaction Error: Stock receipt recording failed ({str(e)}). Inventory was NOT updated.", "danger")
+            return redirect(url_for('admin_replenishment_requests'))
 
     return app
 

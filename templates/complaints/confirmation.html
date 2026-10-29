@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block title %}Complaint Acknowledgment - {{ complaint.grievance_code }} - Digital Ration Portal{% endblock %}
+
+{% block head %}
+<style>
+    .ack-slip-wrapper {
+        font-family: 'Times New Roman', Times, serif;
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    .ack-card {
+        background-color: #FFFFFF;
+        border: 1px solid #D8D5CC;
+        border-radius: 8px;
+        box-shadow: 0 4px 20px rgba(32, 40, 32, 0.08);
+        overflow: hidden;
+    }
+    .ack-header {
+        background-color: #244A36;
+        color: #FFFFFF;
+        padding: 2rem;
+        text-align: center;
+        border-bottom: 3px solid #C5A15A;
+    }
+    .ack-code-box {
+        background-color: #F8F7F2;
+        border: 2px dashed #C5A15A;
+        border-radius: 6px;
+        padding: 1.25rem;
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    .ack-code-text {
+        font-size: 1.85rem;
+        font-weight: 700;
+        color: #244A36;
+        letter-spacing: 0.1em;
+    }
+    .ack-meta-table td, .ack-meta-table th {
+        padding: 0.65rem 0.75rem;
+        border-color: #EAE7DC;
+    }
+    @media print {
+        .no-print {
+            display: none !important;
+        }
+        body {
+            background-color: #FFFFFF !important;
+        }
+        .ack-card {
+            box-shadow: none !important;
+            border: 1px solid #000000 !important;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ack-slip-wrapper py-4">
+    <div class="ack-card">
+        <div class="ack-header">
+            <span class="text-uppercase small fw-bold text-warning" style="letter-spacing: 0.18em;">Department of Food & Public Distribution</span>
+            <h2 class="h3 fw-bold mb-1 mt-1">Official Grievance Acknowledgment Slip</h2>
+            <p class="mb-0 text-white-50 small">Public Distribution System (PDS) — Public Redressal Portal</p>
+        </div>
+
+        <div class="p-4 p-md-5">
+            <div class="ack-code-box">
+                <span class="text-muted d-block small text-uppercase fw-bold mb-1">Official Complaint Reference Number</span>
+                <span class="ack-code-text">{{ complaint.grievance_code }}</span>
+                <div class="small text-muted mt-2">
+                    <i class="bi bi-calendar-check me-1"></i> Registered On: <strong>{{ complaint.created_at.strftime('%d-%b-%Y at %I:%M %p') }}</strong>
+                    &nbsp;|&nbsp;
+                    <span class="badge bg-warning text-dark"><i class="bi bi-clock-history me-1"></i> Status: {{ complaint.status }}</span>
+                </div>
+            </div>
+
+            <h5 class="fw-bold border-bottom pb-2 mb-3 text-dark">
+                <i class="bi bi-info-circle me-1 text-primary"></i> Grievance Summary
+            </h5>
+
+            <table class="table table-bordered ack-meta-table mb-4">
+                <tbody>
+                    <tr>
+                        <th class="table-light text-muted" style="width: 30%;">Complainant Name</th>
+                        <td class="fw-bold">{{ complaint.citizen_name }}</td>
+                    </tr>
+                    <tr>
+                        <th class="table-light text-muted">Ration Card Number</th>
+                        <td><code>{{ complaint.ration_card_number }}</code></td>
+                    </tr>
+                    <tr>
+                        <th class="table-light text-muted">Fair Price Shop</th>
+                        <td>
+                            <strong>{{ complaint.shop.shop_name if complaint.shop else 'N/A' }}</strong>
+                            <span class="badge bg-secondary ms-1">{{ complaint.shop.shop_code if complaint.shop else '' }}</span>
+                            <small class="text-muted d-block">{{ complaint.shop.address if complaint.shop else '' }}</small>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="table-light text-muted">Complaint Category</th>
+                        <td><span class="badge bg-light text-dark border">{{ complaint.category }}</span></td>
+                    </tr>
+                    {% if complaint.commodity %}
+                    <tr>
+                        <th class="table-light text-muted">Related Commodity</th>
+                        <td>{{ complaint.commodity.name }} ({{ complaint.commodity.commodity_type }})</td>
+                    </tr>
+                    {% endif %}
+                    <tr>
+                        <th class="table-light text-muted">Subject</th>
+                        <td class="fw-bold">{{ complaint.subject }}</td>
+                    </tr>
+                    <tr>
+                        <th class="table-light text-muted">Detailed Description</th>
+                        <td><p class="mb-0" style="white-space: pre-line;">{{ complaint.description }}</p></td>
+                    </tr>
+                    {% if complaint.attachment_path %}
+                    <tr>
+                        <th class="table-light text-muted">Attached Evidence</th>
+                        <td>
+                            <a href="{{ url_for('get_complaint_attachment', complaint_id=complaint.id) }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-paperclip me-1"></i> View Attached Evidence Photo
+                            </a>
+                        </td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+
+            <div class="alert alert-info py-2 small mb-4">
+                <i class="bi bi-shield-check me-1"></i> Your grievance has been officially queued for investigation by departmental inspectors and the assigned shop dealer. Please quote Reference <strong>{{ complaint.grievance_code }}</strong> in any correspondence.
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 pt-2 no-print">
+                <a href="{{ url_for('citizen_dashboard') if current_user.role == 'citizen' else url_for('admin_grievances') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i> Return to Portal
+                </a>
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('raise_complaint') }}" class="btn btn-outline-primary">
+                        <i class="bi bi-plus-circle me-1"></i> Register Another
+                    </a>
+                    <button onclick="window.print()" class="btn btn-success">
+                        <i class="bi bi-printer me-1"></i> Print Acknowledgment Slip
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

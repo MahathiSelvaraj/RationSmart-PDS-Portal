@@ -177,9 +177,20 @@ def get_beneficiary_quota_status(ration_card, month_period=None):
         })
         
     overall_pct = round((total_claimed / total_entitled * 100) if total_entitled > 0 else 0, 1)
+
+    scheme_mapping = {
+        'AAY': 'Antyodaya Anna Yojana (AAY)',
+        'PHH': 'Priority Household (NFSA PHH)',
+        'NPHH': 'Non-Priority Household (NPHH)',
+        'NPHH-S': 'Non-Priority Household - Sugar (NPHH-S)',
+        'AY': 'Annapurna Yojana (AY)'
+    }
+    card_type_raw = (ration_card.card_type or '').upper()
+    scheme_name = scheme_mapping.get(card_type_raw, f"NFSA ({card_type_raw})" if card_type_raw else "National Food Security Scheme")
     
     return {
         'month_period': month_period,
+        'scheme_name': scheme_name,
         'card_number': ration_card.card_number,
         'card_type': ration_card.card_type,
         'family_members': ration_card.family_members_count or 1,

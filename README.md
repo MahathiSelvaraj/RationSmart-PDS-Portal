@@ -150,13 +150,15 @@ Open your browser and navigate to:
 
 ## 🔑 6. Demo Login Credentials
 
-| Role | Username | Password | Access / Function |
+| Role | Username / Card Number | Password | Access / Function |
 | :--- | :--- | :--- | :--- |
 | **Admin (DFSO)** | `admin` | `admin123` | Full district dashboard, shop management, allocations, vigilance radar, reports |
-| **Shop Dealer 1** | `dealer1` | `dealer123` | Fair Price Shop #101 POS counter, stock monitor, sales log |
+| **Vigilance Inspector** | `inspector1` | `inspector123` | Anomaly investigation, stock health audit, shop surveillance |
+| **Shop Dealer 1** | `dealer1` | `dealer123` | Fair Price Shop #101 POS billing counter, stock receipts, local offline sync |
 | **Shop Dealer 2** | `dealer2` | `dealer123` | Fair Price Shop #102 POS counter (Ward 15) |
-| **Vigilance Inspector** | `inspector1` | `inspector123` | Anomaly investigation, stock audit |
-| **Public Citizen** | *No login needed* | *No login needed* | Accessible at `/citizen/portal` by typing Ration Card Number |
+| **Citizen (AAY Card)** | `RC-AAY-1001` *(or `citizen1`)* | `citizen123` *(or `pass`)* | Munna Lal (AAY - 35 kg grain quota portal, e-receipts, grievance tracking) |
+| **Citizen (PHH Card)** | `RC-PHH-2001` *(or `citizen2`)* | `citizen123` *(or `pass`)* | Suresh Babu (PHH - 5 kg/member scaling, entitlement meter) |
+| **Citizen (AY Card)** | `RC-AY-4001` *(or `citizen3`)* | `citizen123` *(or `pass`)* | Ramachandra Rao (Annapurna Senior Citizen - 100% free grains) |
 
 ---
 
@@ -189,15 +191,23 @@ Open your browser and navigate to:
 6. Go to **Reports** to view printable monthly commodity summaries and shop performance tables.
 
 ### 4. Running Automated Unit Tests:
-Run the comprehensive test suite in terminal:
+Run the complete automated test suite across all modules:
 ```bash
-python test_app.py
+python -m unittest discover -s . -p "test_*.py"
 ```
-All 7 unit tests covering business rules, NFSA calculations, POS deduction, and API routing will execute and verify with `OK`.
+Or execute individual verification suites:
+```bash
+python -m unittest test_app.py test_login_redesign.py test_customer_quota_table_ui.py test_production_login_render_fix.py
+python verify_pwa_offline_system.py
+python verify_qr_complaint_system.py
+```
+All unit tests covering authentication, database bootstrap, PWA offline sync idempotency, responsive table layout, QR complaint tracking, and NFSA entitlement calculations will execute and verify with `OK`.
 
 ---
 
-## 🎓 College Review & Viva Tips
-- **Why Flask & MySQL?** Lightweight, modular, easy to demonstrate without complex external dependencies, and suitable for high-performance government transaction portals.
-- **How is anomaly detection implemented?** Built as a lightweight, rule-based algorithmic verification engine inspecting quotas, timestamps, inter-transaction intervals, and inventory balances before and during transaction commit.
-- **How are remaining quotas tracked?** Aggregated dynamically on-demand from completed transaction item ledger entries for the current calendar month, avoiding synchronization bugs.
+## 🎓 College Review & Viva Tips (Honest Architectural Grounds)
+- **Why Flask & SQLite/PostgreSQL?** Clean, standard Python backend that provides ACID transaction guarantees (`db.session.rollback()` on stock shortages or policy violations) without excessive microservice bloat.
+- **How does Offline PWA Mode work?** Built using browser-native Service Worker (`/sw.js`) and client-side IndexedDB (`RationSmartPWA`). When offline, the dealer terminal queues transactions with unique UUID client sale keys (`clientSaleId`). Upon reconnection, an idempotent bulk-sync endpoint (`/api/sales/bulk-sync`) commits valid sales and deduplicates already-processed bills.
+- **How is forecasting implemented?** Uses deterministic historical consumption rate analytics (`estimate_stock_depletion` and `calculate_demand_forecast` in `rules.py`), calculating average daily outflows from completed ledger items to predict days until safety stock thresholds are reached. It is an algorithmic moving-average formula, not a black-box AI model.
+- **How are remaining quotas tracked?** Calculated dynamically on-demand from completed transaction records in the active calendar month period (`month_period = 'YYYY-MM'`), eliminating multi-counter desynchronization.
+- **What are the security boundaries?** Centralized append-only audit logging (`audit_service.py`) with sensitive credential redaction (`[REDACTED]`), formula-injection escaping for CSV exports, role-based decorators (`@role_required`), and shop-boundary enforcement ensuring dealers can only access cards assigned to their registered Fair Price Shop.

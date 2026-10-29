@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Digital Ration Shop{% endblock %} - Sales Recording & PDS Grain Allocation Tracking Portal</title>
     
+    <!-- Google Fonts: Inter & DM Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..700;1,9..40,400..700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
@@ -12,28 +16,146 @@
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     
+    <!-- PWA Web App Manifest & App Icons -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0d6efd">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="RationSmart">
+    <link rel="apple-touch-icon" href="/static/img/icon-192.png">
+    
     {% block head %}{% endblock %}
 </head>
 <body>
 
-    <!-- Main Navigation Bar -->
-    <nav class="navbar navbar-expand-lg navbar-dark navbar-custom sticky-top">
-        <div class="container">
-            <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
+    <!-- 1. Top Government Identity Ribbon -->
+    <div class="gov-topbar">
+        <div class="container d-flex flex-column flex-md-row justify-content-between align-items-center py-1 gap-1">
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-warning text-dark px-2 py-0 fw-bold" style="font-size: 0.75rem; letter-spacing: 0.05em;">NFSA</span>
+                <span>National Food Security Portal &bull; Department of Food & Public Distribution</span>
+            </div>
+            <div class="d-flex align-items-center gap-3 small">
+                <span><i class="bi bi-telephone-fill me-1 text-warning"></i> National PDS Helpline: <strong>1967</strong></span>
+                <span class="d-none d-lg-inline text-secondary">|</span>
+                <span class="d-none d-lg-inline"><i class="bi bi-shield-check me-1 text-success"></i> 256-Bit SSL Secured</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Main Brand Header with Emblem & User Profile Capsule -->
+    <header class="pds-brand-header">
+        <div class="container d-flex flex-column flex-md-row justify-content-between align-items-md-center py-2 gap-3">
+            <!-- Brand & Emblem -->
+            <a href="{{ url_for('index') }}" class="d-flex align-items-center text-decoration-none gap-3">
+                <div class="pds-emblem-badge">
+                    <i class="bi bi-patch-check-fill"></i>
+                </div>
                 <div>
-                    <span class="fw-bold">Digital Ration Shop</span>
+                    <h1 class="pds-brand-title">RationSmart</h1>
+                    <div class="pds-brand-subtitle">Public Distribution System &bull; Grain Allocation Tracking Portal</div>
                 </div>
             </a>
-            
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain">
-                <span class="navbar-toggler-icon"></span>
-            </button>
 
-            <div class="collapse navbar-collapse" id="navbarMain">
-                <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-3">
+            <!-- Right Header Section (PWA Status, Install, User Profile or Sign In) -->
+            <div class="d-flex align-items-center gap-2 gap-md-3">
+                <!-- PWA Online / Offline Connection Status Indicator -->
+                <div id="pwaConnectionStatus" class="pds-connection-pill online" title="System connected to district central server">
+                    <span class="pds-status-dot online"></span>
+                    <span class="pds-status-text">Online</span>
+                </div>
+
+                <!-- PWA App Install Button (Visible when installable) -->
+                <button id="pwaInstallBtn" class="btn btn-outline-warning btn-sm d-none fw-bold" type="button" title="Install RationSmart PWA App">
+                    <i class="bi bi-download me-1"></i> Install
+                </button>
+
+                {% if current_user.is_authenticated %}
+                    <div class="dropdown">
+                        <button class="pds-user-capsule dropdown-toggle border-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <div class="pds-avatar-circle">
+                                {{ current_user.username[:2]|upper }}
+                            </div>
+                            <div class="text-start d-none d-sm-block">
+                                <div class="fw-bold lh-1" style="font-size: 0.95rem;">{{ current_user.full_name }}</div>
+                                <div class="small text-muted lh-1 mt-1" style="font-size: 0.8rem;">
+                                    {% if current_user.role == 'admin' %}
+                                        <span class="badge bg-warning text-dark py-0 px-1" style="font-size: 0.72rem;">ADMINISTRATOR</span>
+                                    {% elif current_user.role == 'dealer' %}
+                                        <span class="badge bg-success py-0 px-1" style="font-size: 0.72rem;">DEALER: {{ current_user.shop.shop_code if current_user.shop else 'ASSIGNED' }}</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary py-0 px-1" style="font-size: 0.72rem;">CITIZEN CARDHOLDER</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow">
+                            <li><h6 class="dropdown-header">Authenticated Account</h6></li>
+                            <li>
+                                <div class="dropdown-item-text">
+                                    <strong>{{ current_user.full_name }}</strong>
+                                    <div class="small text-muted">@{{ current_user.username }} &bull; Role: {{ current_user.role|capitalize }}</div>
+                                </div>
+                            </li>
+                            {% if current_user.shop %}
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <span class="dropdown-item-text text-muted small">
+                                        <i class="bi bi-shop me-1 text-primary"></i> {{ current_user.shop.shop_name }} (<code>{{ current_user.shop.shop_code }}</code>)
+                                    </span>
+                                </li>
+                            {% endif %}
+                            {% if current_user.ration_card %}
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <span class="dropdown-item-text text-muted small">
+                                        <i class="bi bi-card-heading me-1 text-primary"></i> Ration Card: <code>{{ current_user.ration_card.card_number }}</code>
+                                    </span>
+                                </li>
+                            {% endif %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item text-danger fw-bold" href="{{ url_for('logout') }}">
+                                    <i class="bi bi-box-arrow-right me-2"></i> Sign Out
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="btn btn-primary btn-sm fw-bold px-3">
+                        <i class="bi bi-lock-fill me-1"></i> Sign In / Login
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+
+    <!-- 3. Primary Navigation Bar: Premium Box-Style Navigation Container -->
+    <nav class="pds-navbar-wrapper navbar navbar-expand-lg sticky-top">
+        <div class="container">
+            <div class="pds-nav-box-container">
+                <!-- Mobile Navigation Toggle Header -->
+                <div class="d-flex align-items-center justify-content-between d-lg-none w-100 py-1 px-2">
+                    <span class="fw-bold text-white small d-flex align-items-center gap-1">
+                        <i class="bi bi-compass text-warning"></i> Portal Navigation Menu
+                    </span>
+                    <button class="navbar-toggler pds-nav-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain" aria-controls="navbarMain" aria-expanded="false" aria-label="Toggle navigation">
+                        <i class="bi bi-list text-white fs-4"></i>
+                    </button>
+                </div>
+
+                <!-- Collapsible Navigation Menu -->
+                <div class="collapse navbar-collapse w-100" id="navbarMain">
+                    <ul class="pds-box-nav navbar-nav list-unstyled mb-0">
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'index' %}active{% endif %}" href="{{ url_for('index') }}">
+                                <i class="bi bi-house-door me-1"></i> Home
+                            </a>
+                        </li>
+
                     {% if current_user.is_authenticated %}
                         {% if current_user.role in ['admin', 'inspector'] %}
-                            <!-- ADMIN MENU (Management + Monitoring) -->
+                            <!-- ADMIN MENU -->
                             <li class="nav-item">
                                 <a class="nav-link {% if request.endpoint == 'admin_dashboard' %}active{% endif %}" href="{{ url_for('admin_dashboard') }}">
                                     <i class="bi bi-speedometer2 me-1"></i> Dashboard
@@ -60,13 +182,16 @@
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link {% if request.endpoint == 'admin_transactions' %}active{% endif %}" href="{{ url_for('admin_transactions') }}">
-                                    <i class="bi bi-receipt me-1"></i> Transactions
+                                <a class="nav-link {% if request.endpoint == 'admin_replenishment_requests' %}active{% endif %}" href="{{ url_for('admin_replenishment_requests') }}">
+                                    <i class="bi bi-box-arrow-in-down me-1"></i> Stock Indents
+                                    {% if pending_replenishments_count > 0 %}
+                                        <span class="badge bg-warning text-dark ms-1">{{ pending_replenishments_count }}</span>
+                                    {% endif %}
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link {% if request.endpoint in ['admin_demand_forecast', 'dealer_demand_forecast'] %}active{% endif %}" href="{{ url_for('admin_demand_forecast') }}">
-                                    <i class="bi bi-graph-up-arrow me-1"></i> Demand Forecast
+                                <a class="nav-link {% if request.endpoint == 'admin_transactions' %}active{% endif %}" href="{{ url_for('admin_transactions') }}">
+                                    <i class="bi bi-receipt me-1"></i> Transactions
                                 </a>
                             </li>
                             <li class="nav-item">
@@ -87,8 +212,13 @@
                                     {% endif %}
                                 </a>
                             </li>
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.endpoint == 'admin_audit_logs' %}active{% endif %}" href="{{ url_for('admin_audit_logs') }}">
+                                    <i class="bi bi-shield-lock me-1"></i> Audit Logs
+                                </a>
+                            </li>
                         {% elif current_user.role == 'dealer' %}
-                            <!-- DEALER MENU (Assigned Shop Operations Only) -->
+                            <!-- DEALER MENU -->
                             <li class="nav-item">
                                 <a class="nav-link {% if request.endpoint == 'dealer_pos' %}active{% endif %}" href="{{ url_for('dealer_pos') }}">
                                     <i class="bi bi-cart-check me-1"></i> My Shop Billing
@@ -100,8 +230,13 @@
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link {% if request.endpoint == 'dealer_demand_forecast' %}active{% endif %}" href="{{ url_for('dealer_demand_forecast') }}">
-                                    <i class="bi bi-graph-up-arrow me-1"></i> Demand Forecast
+                                <a class="nav-link {% if request.endpoint == 'dealer_replenishment_requests' %}active{% endif %}" href="{{ url_for('dealer_replenishment_requests') }}">
+                                    <i class="bi bi-box-arrow-in-down me-1"></i> Stock Indents
+                                    {% if approved_replenishments_count > 0 %}
+                                        <span class="badge bg-success ms-1" title="Approved ready for physical receipt">{{ approved_replenishments_count }}</span>
+                                    {% elif pending_replenishments_count > 0 %}
+                                        <span class="badge bg-warning text-dark ms-1" title="Pending approval">{{ pending_replenishments_count }}</span>
+                                    {% endif %}
                                 </a>
                             </li>
                             <li class="nav-item">
@@ -114,8 +249,14 @@
                                     <i class="bi bi-chat-left-dots me-1"></i> Shop Complaints
                                 </a>
                             </li>
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.endpoint in ['dealer_offline_sales', 'offline_sales'] %}active{% endif %}" href="{{ url_for('offline_sales') }}">
+                                    <i class="bi bi-cloud-arrow-up me-1"></i> Offline Sales
+                                    <span id="navPendingSyncBadge" class="badge bg-warning text-dark ms-1 d-none">0</span>
+                                </a>
+                            </li>
                         {% elif current_user.role == 'citizen' %}
-                            <!-- CITIZEN MENU (My Ration Portal & Entitlements) -->
+                            <!-- CITIZEN MENU -->
                             <li class="nav-item">
                                 <a class="nav-link {% if request.endpoint == 'citizen_dashboard' %}active{% endif %}" href="{{ url_for('citizen_dashboard') }}">
                                     <i class="bi bi-person-badge me-1"></i> My Ration Portal
@@ -130,39 +271,40 @@
                     {% endif %}
                 </ul>
 
-                <!-- User Profile / Login Navigation -->
-                <div class="d-flex align-items-center gap-2">
-                    {% if current_user.is_authenticated %}
-                        <div class="dropdown">
-                            <button class="btn btn-outline-light btn-sm dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown">
-                                <i class="bi bi-person-circle fs-6"></i>
-                                <span>{{ current_user.full_name }}</span>
-                                <span class="badge bg-warning text-dark">{{ current_user.role | upper }}</span>
-                            </button>
-                            <ul class="dropdown-menu dropdown-menu-end shadow">
-                                <li><h6 class="dropdown-header">Logged in as: {{ current_user.username }}</h6></li>
-                                {% if current_user.shop %}
-                                    <li><span class="dropdown-item-text text-muted small"><i class="bi bi-shop me-1"></i> {{ current_user.shop.shop_name }}</span></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                {% endif %}
-                                <li>
-                                    <a class="dropdown-item text-danger" href="{{ url_for('logout') }}">
-                                        <i class="bi bi-box-arrow-right me-2"></i> Logout
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    {% else %}
-                        <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-sm fw-bold">
-                            <i class="bi bi-lock me-1"></i> Sign In / Login
-                        </a>
-                    {% endif %}
+                <!-- Mobile Profile / Logout Link if logged in -->
+                {% if current_user.is_authenticated %}
+                <div class="d-lg-none mt-2 pt-2 border-top border-secondary w-100 text-center">
+                    <span class="text-white-50 small d-block mb-1">Signed in as <strong>{{ current_user.full_name }}</strong></span>
+                    <a href="{{ url_for('logout') }}" class="btn btn-outline-danger btn-sm text-white">
+                        <i class="bi bi-box-arrow-right me-1"></i> Logout
+                    </a>
+                </div>
+                {% endif %}
                 </div>
             </div>
         </div>
     </nav>
 
-    <!-- Main Content Area -->
+    <!-- Tamil-Friendly Offline Banner -->
+    <div id="pwaOfflineBanner" class="pds-offline-banner d-none" role="alert">
+        <div class="container d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-wifi-off fs-5 text-warning"></i>
+                <div>
+                    <strong class="d-block text-white">இணைய இணைப்பு இல்லை — விற்பனை உள்ளூரில் சேமிக்கப்படும்</strong>
+                    <span class="small text-white-50">No Internet Connection — Sales will be saved locally in offline storage and synced upon reconnection.</span>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-warning text-dark fw-bold">OFFLINE MODE</span>
+                <button type="button" class="btn btn-outline-light btn-sm" onclick="triggerPwaSync()">
+                    <i class="bi bi-arrow-repeat me-1"></i> Retry Connection
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Main Content Area -->
     <main class="content-wrapper">
         <div class="container">
             <!-- Flash Messages -->
@@ -172,15 +314,15 @@
                         {% for category, message in messages %}
                             <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm d-flex align-items-center" role="alert">
                                 {% if category == 'success' %}
-                                    <i class="bi bi-check-circle-fill fs-5 me-2"></i>
+                                    <i class="bi bi-check-circle-fill fs-5 me-2 text-success"></i>
                                 {% elif category == 'danger' %}
-                                    <i class="bi bi-exclamation-triangle-fill fs-5 me-2"></i>
+                                    <i class="bi bi-exclamation-triangle-fill fs-5 me-2 text-danger"></i>
                                 {% elif category == 'warning' %}
-                                    <i class="bi bi-exclamation-circle-fill fs-5 me-2"></i>
+                                    <i class="bi bi-exclamation-circle-fill fs-5 me-2 text-warning"></i>
                                 {% else %}
-                                    <i class="bi bi-info-circle-fill fs-5 me-2"></i>
+                                    <i class="bi bi-info-circle-fill fs-5 me-2 text-info"></i>
                                 {% endif %}
-                                <div class="flex-grow-1">{{ message }}</div>
+                                <div class="flex-grow-1 fw-semibold">{{ message }}</div>
                                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                             </div>
                         {% endfor %}
@@ -192,11 +334,45 @@
         </div>
     </main>
 
-    <!-- Footer -->
-    <footer class="gov-footer mt-auto py-3 text-center">
+    <!-- 5. Government Digital Service Footer -->
+    <footer class="gov-footer mt-auto">
         <div class="container">
-            <p class="mb-0">Digital Ration Shop Sales Recording and PDS Grain Allocation Tracking Portal</p>
-            <p class="mb-0 small text-muted">College Mini Project</p>
+            <div class="row g-4 mb-3">
+                <div class="col-md-5">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <div class="pds-emblem-badge" style="width: 32px; height: 32px; font-size: 1rem;">
+                            <i class="bi bi-patch-check-fill"></i>
+                        </div>
+                        <h5 class="fw-bold text-white mb-0">RationSmart PDS Portal</h5>
+                    </div>
+                    <p class="small text-muted mb-0">
+                        National Food Security Act (NFSA) Digital Public Distribution System. Empowering fair, transparent, and biometric-verified grain allocation tracking across district Fair Price Shops.
+                    </p>
+                </div>
+                <div class="col-md-4">
+                    <h6 class="fw-bold text-warning text-uppercase mb-2" style="letter-spacing: 0.05em;">Citizen Support & Grievance</h6>
+                    <ul class="list-unstyled small text-muted mb-0">
+                        <li><i class="bi bi-telephone me-2 text-warning"></i>Toll-Free PDS Helpline: <strong>1967</strong></li>
+                        <li><i class="bi bi-headset me-2 text-warning"></i>Consumer Affairs Helpdesk: <strong>1800-425-0012</strong></li>
+                        <li><i class="bi bi-envelope me-2 text-warning"></i>Grievance Redressal: <strong>support@rationsmart.gov.in</strong></li>
+                    </ul>
+                </div>
+                <div class="col-md-3">
+                    <h6 class="fw-bold text-warning text-uppercase mb-2" style="letter-spacing: 0.05em;">Security & Standards</h6>
+                    <div class="small text-muted">
+                        <div><i class="bi bi-shield-check text-success me-1"></i> 256-Bit SSL Encrypted</div>
+                        <div><i class="bi bi-database-check text-success me-1"></i> Immutable Audit Ledger</div>
+                        <div><i class="bi bi-check-all text-success me-1"></i> Exact-Once Stock Deduction</div>
+                    </div>
+                </div>
+            </div>
+            <hr class="border-secondary my-3 opacity-25">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-center small text-muted">
+                <div>&copy; 2026 Department of Food & Public Distribution. All Rights Reserved.</div>
+                <div class="mt-2 mt-md-0">
+                    <span>Designed for Transparent Public Distribution Governance</span>
+                </div>
+            </div>
         </div>
     </footer>
 
@@ -206,6 +382,8 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <!-- Custom JS -->
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <!-- PWA & Offline Sync Engine -->
+    <script src="{{ url_for('static', filename='js/pwa.js') }}"></script>
     
     {% block scripts %}{% endblock %}
 </body>

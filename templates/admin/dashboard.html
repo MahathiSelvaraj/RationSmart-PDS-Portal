@@ -81,6 +81,18 @@
             <a href="{{ url_for('admin_stock', low_stock_only=1) }}" class="small text-danger text-decoration-none">Inspect Alerts →</a>
         </div>
     </div>
+    <!-- Stock Indents -->
+    <div class="col-sm-6 col-md-3">
+        <div class="card card-pds text-center p-3 {% if pending_replenishments_count > 0 %}border-warning bg-warning bg-opacity-10{% endif %}">
+            <small class="text-muted text-uppercase fw-bold">Stock Indents</small>
+            <h3 class="fw-bold {% if pending_replenishments_count > 0 %}text-warning{% else %}text-primary{% endif %} my-1">
+                {{ pending_replenishments_count }}
+            </h3>
+            <a href="{{ url_for('admin_replenishment_requests') }}" class="small text-decoration-none">
+                {% if pending_replenishments_count > 0 %}Review Indents &rarr;{% else %}Manage Indents &rarr;{% endif %}
+            </a>
+        </div>
+    </div>
 </div>
 
 <!-- System Charts Row -->
@@ -204,6 +216,11 @@
                     <p class="mb-0 fw-bold">All shop inventory levels are optimal.</p>
                 </div>
                 {% endif %}
+            </div>
+            <div class="card-footer bg-light text-center py-2">
+                <a href="{{ url_for('admin_replenishment_requests') }}" class="small text-decoration-none fw-bold">
+                    <i class="bi bi-box-arrow-in-down me-1"></i> Review Stock Replenishment Indents &rarr;
+                </a>
             </div>
         </div>
     </div>

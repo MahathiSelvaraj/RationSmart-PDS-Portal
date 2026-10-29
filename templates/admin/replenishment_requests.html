@@ -1,0 +1,477 @@
+{% extends "base.html" %}
+
+{% block title %}Stock Replenishment Indents & Approvals - RationSmart Admin{% endblock %}
+
+{% block content %}
+<div class="py-2">
+    <!-- Header Banner -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+        <div>
+            <h2 class="fw-bold text-primary mb-1">
+                <i class="bi bi-box-arrow-in-down me-2"></i>District Stock Replenishment Indents
+            </h2>
+            <p class="text-muted mb-0">
+                Review dealer stock requests, authorize grain replenishments, record physical supply receipts, and track district inventory movement.
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('admin_stock') }}" class="btn btn-outline-primary">
+                <i class="bi bi-boxes me-1"></i> Shop Stock Matrix
+            </a>
+            <a href="{{ url_for('admin_allocations') }}" class="btn btn-primary">
+                <i class="bi bi-truck me-1"></i> Central Godown Allocations
+            </a>
+        </div>
+    </div>
+
+    <!-- Summary Metrics Strip -->
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-md">
+            <div class="card card-pds text-center p-3">
+                <small class="text-muted text-uppercase fw-bold">Total Indents</small>
+                <h3 class="fw-bold text-primary my-1">{{ total_count }}</h3>
+                <span class="small text-muted">All Historical Indents</span>
+            </div>
+        </div>
+        <div class="col-sm-6 col-md">
+            <div class="card card-pds text-center p-3 {% if pending_count > 0 %}border-warning bg-warning bg-opacity-10{% endif %}">
+                <small class="text-warning text-uppercase fw-bold">Pending Review</small>
+                <h3 class="fw-bold text-warning my-1">{{ pending_count }}</h3>
+                <span class="small text-muted">Action Required</span>
+            </div>
+        </div>
+        <div class="col-sm-6 col-md">
+            <div class="card card-pds text-center p-3 border-info">
+                <small class="text-info text-uppercase fw-bold">Approved / Awaiting Receipt</small>
+                <h3 class="fw-bold text-info my-1">{{ approved_count }}</h3>
+                <span class="small text-muted">Authorized Indents</span>
+            </div>
+        </div>
+        <div class="col-sm-6 col-md">
+            <div class="card card-pds text-center p-3 border-success">
+                <small class="text-success text-uppercase fw-bold">Fulfilled / Received</small>
+                <h3 class="fw-bold text-success my-1">{{ fulfilled_count }}</h3>
+                <span class="small text-muted">Stock Added to Shops</span>
+            </div>
+        </div>
+        <div class="col-sm-6 col-md">
+            <div class="card card-pds text-center p-3 border-danger">
+                <small class="text-danger text-uppercase fw-bold">Rejected Indents</small>
+                <h3 class="fw-bold text-danger my-1">{{ rejected_count }}</h3>
+                <span class="small text-muted">Closed with Remarks</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter and Search Toolbar -->
+    <div class="card card-pds mb-4">
+        <div class="card-body p-3">
+            <form action="{{ url_for('admin_replenishment_requests') }}" method="GET" class="row g-2 align-items-center">
+                <!-- Search Query -->
+                <div class="col-md-3">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+                        <input type="text" name="search" class="form-control" placeholder="Search Indent #, Shop, Reason..." value="{{ search_q }}">
+                    </div>
+                </div>
+
+                <!-- Shop Filter -->
+                <div class="col-md-2">
+                    <select name="shop_id" class="form-select">
+                        <option value="">All Fair Price Shops</option>
+                        {% for shop in shops %}
+                            <option value="{{ shop.id }}" {% if shop_filter == shop.id %}selected{% endif %}>
+                                {{ shop.shop_code }} - {{ shop.shop_name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Commodity Filter -->
+                <div class="col-md-2">
+                    <select name="commodity_id" class="form-select">
+                        <option value="">All Commodities</option>
+                        {% for comm in commodities %}
+                            <option value="{{ comm.id }}" {% if commodity_filter == comm.id %}selected{% endif %}>
+                                {{ comm.name }} ({{ comm.unit }})
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Status Filter -->
+                <div class="col-md-2">
+                    <select name="status" class="form-select">
+                        <option value="">All Statuses</option>
+                        <option value="Pending" {% if status_filter == 'Pending' %}selected{% endif %}>Pending</option>
+                        <option value="Approved" {% if status_filter == 'Approved' %}selected{% endif %}>Approved</option>
+                        <option value="Fulfilled" {% if status_filter == 'Fulfilled' %}selected{% endif %}>Fulfilled</option>
+                        <option value="Rejected" {% if status_filter == 'Rejected' %}selected{% endif %}>Rejected</option>
+                        <option value="Cancelled" {% if status_filter == 'Cancelled' %}selected{% endif %}>Cancelled</option>
+                    </select>
+                </div>
+
+                <!-- Date Filter -->
+                <div class="col-md-2">
+                    <input type="date" name="date" class="form-control" value="{{ date_filter }}" title="Submission Date">
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="col-md-1 d-flex gap-1">
+                    <button type="submit" class="btn btn-primary w-100" title="Apply Filters">
+                        <i class="bi bi-funnel"></i>
+                    </button>
+                    <a href="{{ url_for('admin_replenishment_requests') }}" class="btn btn-outline-secondary" title="Reset Filters">
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Replenishment Requests Table Card -->
+    <div class="card card-pds">
+        <div class="card-header card-header-pds bg-light d-flex justify-content-between align-items-center">
+            <h5 class="fw-bold mb-0 text-primary">
+                <i class="bi bi-list-check me-2"></i>Replenishment Indents Registry
+            </h5>
+            <span class="badge bg-secondary">{{ requests|length }} Displayed</span>
+        </div>
+        <div class="card-body p-0">
+            {% if requests %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Indent Ref #</th>
+                            <th>Date & Time</th>
+                            <th>Fair Price Shop</th>
+                            <th>Commodity</th>
+                            <th>Snapshot</th>
+                            <th>Requested</th>
+                            <th>Approved</th>
+                            <th>Status</th>
+                            <th>Reason / Admin Remarks</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for req in requests %}
+                        <tr>
+                            <td>
+                                <code class="fw-bold text-dark">{{ req.request_id }}</code>
+                            </td>
+                            <td>
+                                <small class="text-muted d-block">{{ req.created_at.strftime('%d-%b-%Y') }}</small>
+                                <small class="text-muted">{{ req.created_at.strftime('%I:%M %p') }}</small>
+                            </td>
+                            <td>
+                                <div>
+                                    <strong class="text-primary">{{ req.shop.shop_code }}</strong> - {{ req.shop.shop_name }}
+                                </div>
+                                <small class="text-muted">
+                                    <i class="bi bi-person me-1"></i>Dealer: {{ req.dealer.full_name if req.dealer else req.shop.dealer_name }}
+                                    {% if req.shop.ward %}| Ward {{ req.shop.ward }}{% endif %}
+                                </small>
+                            </td>
+                            <td>
+                                <strong>{{ req.commodity.name }}</strong>
+                                <span class="badge bg-light text-dark border ms-1">{{ req.commodity.unit }}</span>
+                            </td>
+                            <td>
+                                <span class="text-secondary fw-semibold">{{ req.stock_snapshot }} {{ req.commodity.unit }}</span>
+                            </td>
+                            <td>
+                                <span class="fw-bold text-dark fs-6">{{ req.requested_quantity }} {{ req.commodity.unit }}</span>
+                            </td>
+                            <td>
+                                {% if req.approved_quantity %}
+                                    <span class="fw-bold text-success fs-6">{{ req.approved_quantity }} {{ req.commodity.unit }}</span>
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge {{ req.status_badge_class }} py-1 px-2">
+                                    {{ req.status }}
+                                </span>
+                            </td>
+                            <td style="max-width: 250px;">
+                                <div class="small">
+                                    <strong>Dealer:</strong> {{ req.reason }}
+                                </div>
+                                {% if req.admin_remarks %}
+                                <div class="small mt-1 text-muted border-top pt-1">
+                                    <strong>Admin:</strong> {{ req.admin_remarks }}
+                                    {% if req.decided_at %}
+                                        <span class="d-block text-secondary" style="font-size: 0.75rem;">
+                                            Decided: {{ req.decided_at.strftime('%d-%b-%Y %I:%M %p') }}
+                                            {% if req.admin_user %}by {{ req.admin_user.username }}{% endif %}
+                                        </span>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                {% if req.status == 'Pending' %}
+                                    <div class="btn-group btn-group-sm">
+                                        <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#approveModal{{ req.id }}" title="Approve Replenishment">
+                                            <i class="bi bi-check-lg me-1"></i> Approve
+                                        </button>
+                                        <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#rejectModal{{ req.id }}" title="Reject Replenishment">
+                                            <i class="bi bi-x-lg me-1"></i> Reject
+                                        </button>
+                                    </div>
+                                {% elif req.status == 'Approved' %}
+                                    <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#receiptModalAdmin{{ req.id }}" title="Record Stock Delivery Receipt">
+                                        <i class="bi bi-truck me-1"></i> Record Receipt
+                                    </button>
+                                {% elif req.status == 'Fulfilled' %}
+                                    <span class="badge bg-success bg-opacity-10 text-success border border-success py-1">
+                                        <i class="bi bi-check2-all me-1"></i> Completed
+                                    </span>
+                                {% elif req.status == 'Rejected' %}
+                                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger py-1">
+                                        <i class="bi bi-slash-circle me-1"></i> Rejected
+                                    </span>
+                                {% elif req.status == 'Cancelled' %}
+                                    <span class="badge bg-secondary bg-opacity-10 text-secondary border py-1">
+                                        Cancelled
+                                    </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+
+                        <!-- APPROVE MODAL -->
+                        {% if req.status == 'Pending' %}
+                        <div class="modal fade" id="approveModal{{ req.id }}" tabindex="-1" aria-labelledby="approveModalLabel{{ req.id }}" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <form action="{{ url_for('admin_approve_replenishment_request', req_id=req.id) }}" method="POST">
+                                        <div class="modal-header bg-success text-white">
+                                            <h5 class="modal-title fw-bold" id="approveModalLabel{{ req.id }}">
+                                                <i class="bi bi-check-circle me-2"></i>Authorize Stock Replenishment
+                                            </h5>
+                                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body p-4">
+                                            <div class="card bg-light border mb-3">
+                                                <div class="card-body p-3">
+                                                    <div class="row g-2">
+                                                        <div class="col-6">
+                                                            <small class="text-muted d-block fw-bold">Request Identifier</small>
+                                                            <code>{{ req.request_id }}</code>
+                                                        </div>
+                                                        <div class="col-6">
+                                                            <small class="text-muted d-block fw-bold">Fair Price Shop</small>
+                                                            <strong>{{ req.shop.shop_code }}</strong> ({{ req.shop.shop_name }})
+                                                        </div>
+                                                        <div class="col-6">
+                                                            <small class="text-muted d-block fw-bold">Commodity</small>
+                                                            <strong>{{ req.commodity.name }}</strong>
+                                                        </div>
+                                                        <div class="col-6">
+                                                            <small class="text-muted d-block fw-bold">Stock at Request Time</small>
+                                                            <span class="text-secondary fw-bold">{{ req.stock_snapshot }} {{ req.commodity.unit }}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label class="form-label fw-bold">Requested Quantity</label>
+                                                <input type="text" class="form-control" value="{{ req.requested_quantity }} {{ req.commodity.unit }}" disabled>
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label class="form-label fw-bold">Approved Allocation Quantity ({{ req.commodity.unit }}) <span class="text-danger">*</span></label>
+                                                <input type="number" step="0.1" min="0.1" name="approved_quantity" value="{{ req.requested_quantity }}" class="form-control form-control-lg fw-bold text-success" required>
+                                                <small class="text-muted">You may approve the full requested quantity or adjust according to godown quota.</small>
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label class="form-label fw-bold">Approval Remarks / Godown Instructions</label>
+                                                <textarea name="remarks" class="form-control" rows="2" placeholder="e.g. Allocation authorized from Central Godown Sector 4..."></textarea>
+                                            </div>
+
+                                            <div class="alert alert-info small mb-0">
+                                                <i class="bi bi-info-circle-fill me-1"></i> <strong>PDS Control Note:</strong> Approving this request authorizes dispatch. Physical shop stock will <strong>NOT</strong> increase until physical delivery receipt is recorded.
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer bg-light">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                            <button type="submit" class="btn btn-success fw-bold">
+                                                <i class="bi bi-check2-circle me-1"></i> Authorize & Approve Request
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- REJECT MODAL -->
+                        <div class="modal fade" id="rejectModal{{ req.id }}" tabindex="-1" aria-labelledby="rejectModalLabel{{ req.id }}" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <form action="{{ url_for('admin_reject_replenishment_request', req_id=req.id) }}" method="POST">
+                                        <div class="modal-header bg-danger text-white">
+                                            <h5 class="modal-title fw-bold" id="rejectModalLabel{{ req.id }}">
+                                                <i class="bi bi-x-circle me-2"></i>Reject Replenishment Indent
+                                            </h5>
+                                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body p-4">
+                                            <div class="card bg-light border mb-3">
+                                                <div class="card-body p-3">
+                                                    <div class="row g-2">
+                                                        <div class="col-6">
+                                                            <small class="text-muted d-block fw-bold">Request Identifier</small>
+                                                            <code>{{ req.request_id }}</code>
+                                                        </div>
+                                                        <div class="col-6">
+                                                            <small class="text-muted d-block fw-bold">Shop</small>
+                                                            <strong>{{ req.shop.shop_code }}</strong>
+                                                        </div>
+                                                        <div class="col-6">
+                                                            <small class="text-muted d-block fw-bold">Commodity</small>
+                                                            <strong>{{ req.commodity.name }}</strong>
+                                                        </div>
+                                                        <div class="col-6">
+                                                            <small class="text-muted d-block fw-bold">Requested Qty</small>
+                                                            <strong>{{ req.requested_quantity }} {{ req.commodity.unit }}</strong>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label class="form-label fw-bold text-danger">Mandatory Rejection Remarks <span class="text-danger">*</span></label>
+                                                <textarea name="remarks" class="form-control border-danger" rows="3" required minlength="3" placeholder="Mandatory: Specify reason for rejection (e.g. Current stock sufficient, godown supply cycle scheduled next week, quota limit reached)..."></textarea>
+                                                <small class="text-danger">Explanatory remarks (minimum 3 characters) are strictly required for administrative audit integrity.</small>
+                                            </div>
+
+                                            <div class="alert alert-warning small mb-0">
+                                                <i class="bi bi-exclamation-triangle-fill me-1"></i> Once rejected, the dealer will be notified on their portal and this request will be closed.
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer bg-light">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                            <button type="submit" class="btn btn-danger fw-bold">
+                                                <i class="bi bi-slash-circle me-1"></i> Confirm Rejection
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- RECORD STOCK RECEIPT MODAL (ADMIN) -->
+                        {% if req.status == 'Approved' %}
+                        <div class="modal fade" id="receiptModalAdmin{{ req.id }}" tabindex="-1" aria-labelledby="receiptModalAdminLabel{{ req.id }}" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <form action="{{ url_for('admin_record_stock_receipt', req_id=req.id) }}" method="POST">
+                                        <div class="modal-header bg-primary text-white">
+                                            <h5 class="modal-title fw-bold" id="receiptModalAdminLabel{{ req.id }}">
+                                                <i class="bi bi-truck me-2"></i>Record Physical Delivery & Stock Receipt
+                                            </h5>
+                                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body p-4">
+                                            <div class="alert alert-light border mb-3">
+                                                <div class="row">
+                                                    <div class="col-6">
+                                                        <small class="text-muted d-block fw-bold">Request Identifier</small>
+                                                        <code>{{ req.request_id }}</code>
+                                                    </div>
+                                                    <div class="col-6 text-end">
+                                                        <small class="text-muted d-block fw-bold">Approved Allocation</small>
+                                                        <span class="fw-bold text-success fs-6">{{ req.approved_quantity or req.requested_quantity }} {{ req.commodity.unit }}</span>
+                                                    </div>
+                                                    <div class="col-12 mt-2 pt-2 border-top">
+                                                        <small class="text-muted d-block fw-bold">Receiving Shop</small>
+                                                        <strong>{{ req.shop.shop_code }}</strong> - {{ req.shop.shop_name }}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label class="form-label fw-bold">Actual Quantity Delivered ({{ req.commodity.unit }}) <span class="text-danger">*</span></label>
+                                                <input type="number" step="0.1" min="0.1" name="actual_quantity" 
+                                                       id="adminActualQty{{ req.id }}"
+                                                       value="{{ req.approved_quantity or req.requested_quantity }}" 
+                                                       class="form-control form-control-lg fw-bold text-primary" required
+                                                       oninput="checkDiscrepancyAdmin('{{ req.id }}', '{{ req.approved_quantity or req.requested_quantity }}')">
+                                                <small class="text-muted">Enter physically verified quantity received at the destination shop.</small>
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label class="form-label fw-bold">Delivery Challan / Godown Waybill #</label>
+                                                <input type="text" name="delivery_challan_no" class="form-control" placeholder="e.g. CH-2026-GODOWN-091">
+                                                <small class="text-muted">Godown dispatch reference or transport voucher number.</small>
+                                            </div>
+
+                                            <div class="mb-3" id="adminDiscrepancyBox{{ req.id }}" style="display: none;">
+                                                <label class="form-label fw-bold text-danger">
+                                                    <i class="bi bi-exclamation-triangle-fill me-1"></i> Discrepancy Remarks <span class="text-danger">*</span>
+                                                </label>
+                                                <textarea name="discrepancy_remarks" id="adminDiscrepancyRemarks{{ req.id }}" class="form-control border-danger" rows="2" placeholder="Mandatory: Explain variance between approved and delivered quantity..."></textarea>
+                                                <small class="text-danger">Required whenever delivered quantity differs from approved quantity.</small>
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label class="form-label fw-bold">General Receipt Notes</label>
+                                                <textarea name="notes" class="form-control" rows="2" placeholder="Optional notes..."></textarea>
+                                            </div>
+
+                                            <div class="alert alert-warning small mb-0">
+                                                <i class="bi bi-info-circle-fill me-1"></i> <strong>Inventory Update:</strong> Submitting this receipt will immediately increment the shop's physical stock balance and record an immutable audit entry.
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer bg-light">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                            <button type="submit" class="btn btn-primary fw-bold">
+                                                <i class="bi bi-check2-circle me-1"></i> Confirm Receipt & Update Stock
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-inbox fs-1 text-muted d-block mb-3"></i>
+                <h6 class="fw-bold text-dark">No Replenishment Requests Found</h6>
+                <p class="text-muted small">No stock indents match the selected filter criteria.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+function checkDiscrepancyAdmin(reqId, approvedQty) {
+    var actualInput = document.getElementById('adminActualQty' + reqId);
+    var discrepancyBox = document.getElementById('adminDiscrepancyBox' + reqId);
+    var discrepancyText = document.getElementById('adminDiscrepancyRemarks' + reqId);
+    
+    var actual = parseFloat(actualInput.value) || 0;
+    var approved = parseFloat(approvedQty) || 0;
+    
+    if (Math.abs(actual - approved) > 0.01) {
+        discrepancyBox.style.display = 'block';
+        discrepancyText.required = true;
+    } else {
+        discrepancyBox.style.display = 'none';
+        discrepancyText.required = false;
+    }
+}
+</script>
+{% endblock %}

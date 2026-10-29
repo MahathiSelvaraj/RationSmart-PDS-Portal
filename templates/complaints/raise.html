@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+
+{% block title %}Register Grievance & Feedback - Digital Ration Portal{% endblock %}
+
+{% block head %}
+<style>
+    .complaint-wrapper {
+        font-family: 'Times New Roman', Times, serif;
+        max-width: 900px;
+        margin: 0 auto;
+    }
+    .complaint-card {
+        background-color: #FFFFFF;
+        border: 1px solid #D8D5CC;
+        border-radius: 8px;
+        box-shadow: 0 4px 20px rgba(32, 40, 32, 0.06);
+    }
+    .complaint-header {
+        background-color: #244A36;
+        color: #FFFFFF;
+        padding: 1.75rem 2rem;
+        border-top-left-radius: 7px;
+        border-top-right-radius: 7px;
+        border-bottom: 3px solid #C5A15A;
+    }
+    .pds-sublabel {
+        color: #C5A15A;
+        font-size: 0.82rem;
+        font-weight: 700;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        display: block;
+        margin-bottom: 0.25rem;
+    }
+    .citizen-badge-strip {
+        background-color: #F8F7F2;
+        border: 1px solid #E2DFD2;
+        border-radius: 6px;
+        padding: 1rem 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+    .form-label {
+        font-weight: 700;
+        color: #202820;
+        margin-bottom: 0.4rem;
+        font-size: 16.5px;
+    }
+    .form-control {
+        border: 1px solid #C8C5BC;
+        border-radius: 5px;
+        padding: 0.625rem 0.95rem;
+        font-size: 16.5px;
+        min-height: 46px;
+        font-family: 'Times New Roman', Times, serif;
+        color: #202820;
+    }
+    .form-select {
+        border: 1px solid #C8C5BC;
+        border-radius: 5px;
+        padding: 0.625rem 2.85rem 0.625rem 1rem;
+        font-size: 16.5px;
+        min-height: 46px;
+        font-family: 'Times New Roman', Times, serif;
+        color: #202820;
+    }
+    .form-control:focus, .form-select:focus {
+        border-color: #244A36;
+        box-shadow: 0 0 0 0.22rem rgba(36, 74, 54, 0.2);
+    }
+    .btn-pds-submit {
+        background-color: #244A36;
+        color: #FFFFFF;
+        border: 1px solid #1C3B2B;
+        font-weight: 700;
+        padding: 0.75rem 2rem;
+        font-size: 1.05rem;
+        border-radius: 4px;
+        letter-spacing: 0.05em;
+        transition: all 0.2s ease;
+    }
+    .btn-pds-submit:hover {
+        background-color: #1C3B2B;
+        color: #F8F7F2;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="complaint-wrapper py-3">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{{ url_for('citizen_dashboard') if current_user.role == 'citizen' else url_for('index') }}" class="text-decoration-none text-muted">Home</a></li>
+            <li class="breadcrumb-item active text-dark" aria-current="page">Raise Complaint</li>
+        </ol>
+    </nav>
+
+    <div class="complaint-card">
+        <!-- Header Banner -->
+        <div class="complaint-header">
+            <span class="pds-sublabel">Public Grievance Redressal Mechanism</span>
+            <h2 class="h3 fw-bold mb-1"><i class="bi bi-shield-exclamation me-2"></i>Register PDS Complaint / Grievance</h2>
+            <p class="mb-0 text-white-50 small">Submit official feedback regarding grain distribution, quality, quantity shortages, or dealer conduct</p>
+        </div>
+
+        <div class="p-4 p-md-5">
+            <!-- Citizen Identity Strip -->
+            {% if card %}
+            <div class="citizen-badge-strip">
+                <div class="row align-items-center g-2">
+                    <div class="col-md-7">
+                        <small class="text-muted d-block">Authenticated Beneficiary</small>
+                        <strong class="fs-6 text-dark">{{ card.head_of_family }}</strong>
+                        <span class="badge bg-warning text-dark ms-2">{{ card.card_type }}</span>
+                        <div class="small text-muted mt-1">
+                            <i class="bi bi-card-text me-1"></i> Card No: <strong>{{ card.card_number }}</strong>
+                            {% if card.mobile %}&nbsp;|&nbsp;<i class="bi bi-telephone me-1"></i> {{ card.mobile }}{% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-5 text-md-end">
+                        <small class="text-muted d-block">Assigned Fair Price Shop</small>
+                        <strong class="text-dark">{{ card.assigned_shop.shop_name if card.assigned_shop else 'N/A' }}</strong>
+                        <span class="badge bg-secondary ms-1">{{ card.assigned_shop.shop_code if card.assigned_shop else '' }}</span>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="citizen-badge-strip">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <small class="text-muted d-block">Authenticated Official / User</small>
+                        <strong class="fs-6 text-dark">{{ current_user.full_name }} ({{ current_user.role|upper }})</strong>
+                    </div>
+                    <span class="badge bg-primary">{{ current_user.username }}</span>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Complaint Form -->
+            <form action="{{ url_for('raise_complaint') }}" method="POST" enctype="multipart/form-data" novalidate id="complaintForm">
+                <div class="row g-4 mb-4">
+                    <!-- Shop Selection (Preselected from QR) -->
+                    <div class="col-md-6">
+                        <label for="shop_id" class="form-label">
+                            <i class="bi bi-shop me-1 text-primary"></i> Fair Price Shop <span class="text-danger">*</span>
+                        </label>
+                        <select name="shop_id" id="shop_id" class="form-select" required>
+                            {% for s in shops %}
+                                <option value="{{ s.id }}" {% if selected_shop and selected_shop.id == s.id %}selected{% endif %}>
+                                    {{ s.shop_code }} — {{ s.shop_name }} ({{ s.ward }})
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text small text-muted">
+                            {% if request.args.get('shop_code') %}
+                                <i class="bi bi-qr-code text-success me-1"></i> Preselected from scanned shop QR code.
+                            {% else %}
+                                Shop identified for investigation.
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Complaint Category -->
+                    <div class="col-md-6">
+                        <label for="category" class="form-label">
+                            <i class="bi bi-tags me-1 text-primary"></i> Complaint Category <span class="text-danger">*</span>
+                        </label>
+                        <select name="category" id="category" class="form-select" required>
+                            <option value="" disabled {% if not form_data.get('category') %}selected{% endif %}>Select category...</option>
+                            {% for cat in categories %}
+                                <option value="{{ cat }}" {% if form_data.get('category') == cat %}selected{% endif %}>{{ cat }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text small text-muted">Select the category that best describes the issue.</div>
+                    </div>
+
+                    <!-- Related Commodity -->
+                    <div class="col-md-6">
+                        <label for="commodity_id" class="form-label">
+                            <i class="bi bi-box-seam me-1 text-primary"></i> Related Commodity (Optional)
+                        </label>
+                        <select name="commodity_id" id="commodity_id" class="form-select">
+                            <option value="">General / Not Specific to Commodity</option>
+                            {% for c in commodities %}
+                                <option value="{{ c.id }}" {% if form_data.get('commodity_id')|string == c.id|string %}selected{% endif %}>
+                                    {{ c.name }} ({{ c.commodity_type }})
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text small text-muted">Specify grain or commodity if complaint is product-related.</div>
+                    </div>
+
+                    <!-- Supporting Attachment Image -->
+                    <div class="col-md-6">
+                        <label for="attachment" class="form-label">
+                            <i class="bi bi-paperclip me-1 text-primary"></i> Supporting Photo / Evidence (Optional)
+                        </label>
+                        <input type="file" name="attachment" id="attachment" class="form-control" accept=".png,.jpg,.jpeg,.webp">
+                        <div class="form-text small text-muted">Allowed formats: PNG, JPG, JPEG, WEBP (Max: 3MB).</div>
+                    </div>
+
+                    <!-- Subject -->
+                    <div class="col-12">
+                        <label for="subject" class="form-label">
+                            <i class="bi bi-chat-left-text me-1 text-primary"></i> Complaint Subject <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" name="subject" id="subject" class="form-control" 
+                               placeholder="e.g. Substandard wheat quality received or Shortage of 3kg rice during collection" 
+                               value="{{ form_data.get('subject', '') }}" minlength="5" maxlength="150" required>
+                        <div class="form-text small text-muted">Brief summary of the issue (5 - 150 characters).</div>
+                    </div>
+
+                    <!-- Detailed Description -->
+                    <div class="col-12">
+                        <label for="description" class="form-label">
+                            <i class="bi bi-textarea-t me-1 text-primary"></i> Detailed Description <span class="text-danger">*</span>
+                        </label>
+                        <textarea name="description" id="description" rows="5" class="form-control" 
+                                  placeholder="Please provide complete facts: date, time, quantity disbursed, dealer response, or billing discrepancy..." 
+                                  minlength="10" maxlength="2000" required>{{ form_data.get('description', '') }}</textarea>
+                        <div class="form-text small text-muted">Provide factual details to facilitate official departmental inquiry (10 - 2000 characters).</div>
+                    </div>
+                </div>
+
+                <!-- Submit Button & Disclaimer -->
+                <div class="border-top pt-4 d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3">
+                    <div class="small text-muted">
+                        <i class="bi bi-info-circle me-1 text-primary"></i>
+                        A unique Reference Code will be issued upon submission for tracking.
+                    </div>
+                    <div class="d-flex gap-2">
+                        <a href="{{ url_for('citizen_dashboard') if current_user.role == 'citizen' else url_for('admin_dashboard') }}" class="btn btn-outline-secondary px-4">Cancel</a>
+                        <button type="submit" class="btn btn-pds-submit shadow-sm">
+                            <i class="bi bi-send-check me-2"></i> Submit Official Complaint
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

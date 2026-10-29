@@ -1,0 +1,419 @@
+{% extends "base.html" %}
+
+{% block title %}Audit Logs & Security Trail - Admin Portal{% endblock %}
+
+{% block content %}
+<div class="py-2">
+    <!-- Header Banner -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+        <div>
+            <h2 class="fw-bold text-primary mb-1">
+                <i class="bi bi-shield-lock me-2"></i>System Audit Logs & Security Activity Trail
+            </h2>
+            <p class="text-muted mb-0">
+                Immutable server-generated record of authentication, administrative operations, billing disbursals, and stock updates
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('admin_audit_logs_export', **current_filters) }}" class="btn btn-outline-primary fw-bold">
+                <i class="bi bi-download me-1"></i> Export Filtered CSV
+            </a>
+        </div>
+    </div>
+
+    <!-- Summary Metrics Strip -->
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-md-3">
+            <div class="card card-pds text-center p-3">
+                <small class="text-muted text-uppercase fw-bold">Total Audit Events</small>
+                <h3 class="fw-bold text-primary my-1">{{ total_count }}</h3>
+                <span class="small text-muted">Filtered Records</span>
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-3">
+            <div class="card card-pds text-center p-3 border-success">
+                <small class="text-success text-uppercase fw-bold">Successful Actions</small>
+                <h3 class="fw-bold text-success my-1">{{ success_count }}</h3>
+                <span class="small text-muted">Completed Verified</span>
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-3">
+            <div class="card card-pds text-center p-3 border-danger">
+                <small class="text-danger text-uppercase fw-bold">Failures & Rejections</small>
+                <h3 class="fw-bold text-danger my-1">{{ failure_count }}</h3>
+                <span class="small text-muted">Validation Blocked</span>
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-3">
+            <div class="card card-pds text-center p-3 border-warning">
+                <small class="text-warning text-uppercase fw-bold">Access Denied Alerts</small>
+                <h3 class="fw-bold text-warning my-1">{{ denied_count }}</h3>
+                <span class="small text-muted">Unauthorized Attempts</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Toolbar -->
+    <div class="card card-pds mb-4">
+        <div class="card-header card-header-pds d-flex justify-content-between align-items-center">
+            <span class="fw-bold"><i class="bi bi-funnel me-2 text-primary"></i>Audit Log Query Filters</span>
+            <span class="badge bg-secondary">{{ pagination.total }} Matching Records</span>
+        </div>
+        <div class="card-body p-3">
+            <form method="GET" action="{{ url_for('admin_audit_logs') }}" class="row g-3">
+                <!-- Search -->
+                <div class="col-md-3">
+                    <label class="form-label">Search Query</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input type="text" name="search" class="form-control" placeholder="Event ID, Record ID, Actor..." value="{{ search_q or '' }}">
+                    </div>
+                </div>
+
+                <!-- Action Type -->
+                <div class="col-md-3">
+                    <label class="form-label">Action</label>
+                    <select name="action" class="form-select">
+                        <option value="">All Actions</option>
+                        {% for act in action_types %}
+                            <option value="{{ act }}" {% if action_filter == act %}selected{% endif %}>{{ act }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Entity Type -->
+                <div class="col-md-2">
+                    <label class="form-label">Entity Type</label>
+                    <select name="entity_type" class="form-select">
+                        <option value="">All Entities</option>
+                        {% for ent in entity_types %}
+                            <option value="{{ ent }}" {% if entity_filter == ent %}selected{% endif %}>{{ ent }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Role Filter -->
+                <div class="col-md-2">
+                    <label class="form-label">Actor Role</label>
+                    <select name="role" class="form-select">
+                        <option value="">All Roles</option>
+                        <option value="admin" {% if role_filter == 'admin' %}selected{% endif %}>Admin / Inspector</option>
+                        <option value="dealer" {% if role_filter == 'dealer' %}selected{% endif %}>Dealer</option>
+                        <option value="citizen" {% if role_filter == 'citizen' %}selected{% endif %}>Citizen</option>
+                        <option value="Anonymous" {% if role_filter == 'Anonymous' %}selected{% endif %}>Anonymous</option>
+                    </select>
+                </div>
+
+                <!-- Outcome -->
+                <div class="col-md-2">
+                    <label class="form-label">Outcome</label>
+                    <select name="outcome" class="form-select">
+                        <option value="">All Outcomes</option>
+                        <option value="SUCCESS" {% if outcome_filter == 'SUCCESS' %}selected{% endif %}>SUCCESS</option>
+                        <option value="FAILURE" {% if outcome_filter == 'FAILURE' %}selected{% endif %}>FAILURE</option>
+                        <option value="DENIED" {% if outcome_filter == 'DENIED' %}selected{% endif %}>DENIED</option>
+                    </select>
+                </div>
+
+                <!-- Shop Filter -->
+                <div class="col-md-4">
+                    <label class="form-label">Fair Price Shop</label>
+                    <select name="shop_id" class="form-select">
+                        <option value="">All Fair Price Shops (District-Wide)</option>
+                        {% for s in shops %}
+                            <option value="{{ s.id }}" {% if shop_filter == s.id|string %}selected{% endif %}>
+                                {{ s.shop_code }} — {{ s.shop_name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- From Date -->
+                <div class="col-md-3">
+                    <label class="form-label">From Date (UTC)</label>
+                    <input type="date" name="from_date" class="form-control" value="{{ from_date or '' }}">
+                </div>
+
+                <!-- To Date -->
+                <div class="col-md-3">
+                    <label class="form-label">To Date (UTC)</label>
+                    <input type="date" name="to_date" class="form-control" value="{{ to_date or '' }}">
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="col-md-2 d-flex align-items-end gap-2">
+                    <button type="submit" class="btn btn-primary w-100 fw-bold">
+                        <i class="bi bi-funnel me-1"></i> Filter
+                    </button>
+                    <a href="{{ url_for('admin_audit_logs') }}" class="btn btn-outline-secondary" title="Reset Filters">
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Audit Events Table -->
+    <div class="card card-pds mb-4">
+        <div class="card-header card-header-pds d-flex justify-content-between align-items-center">
+            <span class="fw-bold"><i class="bi bi-table me-2 text-primary"></i>Audit Trail Records</span>
+            <span class="small text-muted">Showing {{ logs|length }} of {{ pagination.total }} records (Page {{ pagination.page }} of {{ pagination.pages or 1 }})</span>
+        </div>
+        <div class="card-body p-0">
+            {% if logs %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Event ID</th>
+                            <th>Timestamp (UTC)</th>
+                            <th>Actor & Role</th>
+                            <th>Action</th>
+                            <th>Entity & Record</th>
+                            <th>Shop</th>
+                            <th>Outcome</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for l in logs %}
+                        <tr>
+                            <td>
+                                <code>{{ l.event_id }}</code>
+                            </td>
+                            <td>
+                                <div class="fw-bold">{{ l.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</div>
+                                <small class="text-muted">{{ l.ip_address or 'System/Local' }}</small>
+                            </td>
+                            <td>
+                                <strong>{{ l.actor_identifier }}</strong>
+                                <div>
+                                    <span class="badge {% if l.actor_role in ['admin', 'inspector'] %}bg-primary{% elif l.actor_role == 'dealer' %}bg-success{% elif l.actor_role == 'citizen' %}bg-info text-dark{% else %}bg-secondary{% endif %}">
+                                        {{ l.actor_role | upper }}
+                                    </span>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark border fw-bold">
+                                    {{ l.action }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="d-block fw-bold">{{ l.entity_type }}</span>
+                                {% if l.entity_id %}
+                                    <small class="text-muted">ID: <code>{{ l.entity_id }}</code></small>
+                                {% else %}
+                                    <small class="text-muted">N/A</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if l.shop %}
+                                    <span class="badge bg-light text-dark border">{{ l.shop.shop_code }}</span>
+                                {% elif l.shop_id %}
+                                    <span class="badge bg-light text-dark border">Shop #{{ l.shop_id }}</span>
+                                {% else %}
+                                    <span class="text-muted small">District Global</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if l.outcome == 'SUCCESS' %}
+                                    <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>SUCCESS</span>
+                                {% elif l.outcome == 'DENIED' %}
+                                    <span class="badge bg-warning text-dark"><i class="bi bi-shield-x me-1"></i>DENIED</span>
+                                {% else %}
+                                    <span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>FAILURE</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <button type="button" class="btn btn-outline-primary btn-sm py-1 px-2" 
+                                        data-bs-toggle="modal" data-bs-target="#auditDetailModal"
+                                        onclick="showAuditDetail({{ l.id }})">
+                                    <i class="bi bi-eye me-1"></i> View
+                                </button>
+                                <!-- Hidden data payload for modal -->
+                                <div id="auditData{{ l.id }}" class="d-none"
+                                     data-event-id="{{ l.event_id }}"
+                                     data-timestamp="{{ l.timestamp.strftime('%Y-%m-%d %H:%M:%S UTC') }}"
+                                     data-actor="{{ l.actor_identifier }} ({{ l.actor_role | upper }})"
+                                     data-action="{{ l.action }}"
+                                     data-entity="{{ l.entity_type }}{% if l.entity_id %} #{{ l.entity_id }}{% endif %}"
+                                     data-shop="{% if l.shop %}{{ l.shop.shop_code }} — {{ l.shop.shop_name }}{% else %}District Global{% endif %}"
+                                     data-outcome="{{ l.outcome }}"
+                                     data-reason="{{ l.reason or '' }}"
+                                     data-ip="{{ l.ip_address or 'System/Local' }}"
+                                     data-req-id="{{ l.request_id or 'N/A' }}"
+                                     data-changes="{{ l.changes or '' }}">
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Server-Side Pagination Bar -->
+            {% if pagination.pages > 1 %}
+            <div class="card-footer bg-light p-3 d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
+                <span class="text-muted small">
+                    Page <strong>{{ pagination.page }}</strong> of <strong>{{ pagination.pages }}</strong> ({{ pagination.total }} total entries)
+                </span>
+                <nav aria-label="Audit pagination">
+                    <ul class="pagination mb-0">
+                        <!-- Previous Page Link -->
+                        <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                            <a class="page-link" href="{{ url_for('admin_audit_logs', page=pagination.prev_num, **current_filters) }}">
+                                <i class="bi bi-chevron-left"></i> Previous
+                            </a>
+                        </li>
+                        
+                        <!-- Page number summary -->
+                        <li class="page-item disabled">
+                            <span class="page-link text-dark fw-bold">{{ pagination.page }} / {{ pagination.pages }}</span>
+                        </li>
+
+                        <!-- Next Page Link -->
+                        <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                            <a class="page-link" href="{{ url_for('admin_audit_logs', page=pagination.next_num, **current_filters) }}">
+                                Next <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+
+            {% else %}
+            <!-- Empty State -->
+            <div class="text-center py-5">
+                <i class="bi bi-shield-slash fs-1 text-muted d-block mb-3"></i>
+                <h5 class="fw-bold text-dark">No Audit Log Records Found</h5>
+                <p class="text-muted mb-3">No activity records matched the specified filter criteria.</p>
+                <a href="{{ url_for('admin_audit_logs') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i> Clear All Filters
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Audit Event Details Modal -->
+<div class="modal fade" id="auditDetailModal" tabindex="-1" aria-labelledby="auditDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title fw-bold" id="auditDetailModalLabel">
+                    <i class="bi bi-shield-check me-2 text-primary"></i>Audit Event Record Detail
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <small class="text-muted d-block fw-bold">Event Identifier</small>
+                        <code class="fs-6 fw-bold" id="modalEventId"></code>
+                    </div>
+                    <div class="col-md-6">
+                        <small class="text-muted d-block fw-bold">Timestamp</small>
+                        <span id="modalTimestamp" class="fw-bold"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <small class="text-muted d-block fw-bold">Actor</small>
+                        <span id="modalActor"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <small class="text-muted d-block fw-bold">Action Performed</small>
+                        <span class="badge bg-primary fs-6" id="modalAction"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <small class="text-muted d-block fw-bold">Affected Entity</small>
+                        <strong id="modalEntity"></strong>
+                    </div>
+                    <div class="col-md-6">
+                        <small class="text-muted d-block fw-bold">Fair Price Shop</small>
+                        <span id="modalShop"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <small class="text-muted d-block fw-bold">Client IP Address</small>
+                        <code id="modalIp"></code>
+                    </div>
+                    <div class="col-md-6">
+                        <small class="text-muted d-block fw-bold">Outcome Status</small>
+                        <span id="modalOutcome"></span>
+                    </div>
+                </div>
+
+                <!-- Reason / Note -->
+                <div class="mb-3" id="modalReasonWrapper">
+                    <small class="text-muted d-block fw-bold mb-1">Reason / Administrative Outcome</small>
+                    <div class="p-2 bg-light border rounded text-dark" id="modalReason"></div>
+                </div>
+
+                <!-- Structured Changes Before/After -->
+                <div class="mb-2" id="modalChangesWrapper">
+                    <small class="text-muted d-block fw-bold mb-1">Structured Before / After Changes</small>
+                    <pre class="p-3 bg-light border rounded text-dark" style="max-height: 250px; overflow-y: auto; font-size: 14.5px;" id="modalChangesJson"></pre>
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function showAuditDetail(logId) {
+    const el = document.getElementById('auditData' + logId);
+    if (!el) return;
+
+    document.getElementById('modalEventId').innerText = el.dataset.eventId || 'N/A';
+    document.getElementById('modalTimestamp').innerText = el.dataset.timestamp || 'N/A';
+    document.getElementById('modalActor').innerText = el.dataset.actor || 'N/A';
+    document.getElementById('modalAction').innerText = el.dataset.action || 'N/A';
+    document.getElementById('modalEntity').innerText = el.dataset.entity || 'N/A';
+    document.getElementById('modalShop').innerText = el.dataset.shop || 'District Global';
+    document.getElementById('modalIp').innerText = el.dataset.ip || 'Local/System';
+    
+    // Outcome badge
+    const outcome = el.dataset.outcome || 'SUCCESS';
+    let outcomeHtml = '';
+    if (outcome === 'SUCCESS') {
+        outcomeHtml = '<span class="badge bg-success">SUCCESS</span>';
+    } else if (outcome === 'DENIED') {
+        outcomeHtml = '<span class="badge bg-warning text-dark">DENIED</span>';
+    } else {
+        outcomeHtml = '<span class="badge bg-danger">FAILURE</span>';
+    }
+    document.getElementById('modalOutcome').innerHTML = outcomeHtml;
+
+    // Reason
+    const reason = el.dataset.reason;
+    const reasonWrapper = document.getElementById('modalReasonWrapper');
+    if (reason && reason.trim()) {
+        reasonWrapper.classList.remove('d-none');
+        document.getElementById('modalReason').innerText = reason;
+    } else {
+        reasonWrapper.classList.add('d-none');
+    }
+
+    // Changes JSON
+    const changesRaw = el.dataset.changes;
+    const changesWrapper = document.getElementById('modalChangesWrapper');
+    if (changesRaw && changesRaw.trim()) {
+        try {
+            const parsed = JSON.parse(changesRaw);
+            document.getElementById('modalChangesJson').innerText = JSON.stringify(parsed, null, 2);
+            changesWrapper.classList.remove('d-none');
+        } catch (e) {
+            document.getElementById('modalChangesJson').innerText = changesRaw;
+            changesWrapper.classList.remove('d-none');
+        }
+    } else {
+        changesWrapper.classList.add('d-none');
+    }
+}
+</script>
+{% endblock %}

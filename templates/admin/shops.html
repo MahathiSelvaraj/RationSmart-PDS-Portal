@@ -66,6 +66,9 @@
                                 <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editShopModal{{ shop.id }}" title="Edit">
                                     <i class="bi bi-pencil"></i> Edit
                                 </button>
+                                <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#qrShopModal{{ shop.id }}" title="Complaint QR Code">
+                                    <i class="bi bi-qr-code"></i> QR
+                                </button>
                             </div>
 
                             <!-- Edit Modal -->
@@ -112,6 +115,44 @@
                                                 <button type="submit" class="btn btn-primary">Save Changes</button>
                                             </div>
                                         </form>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- QR Code Modal -->
+                            <div class="modal fade" id="qrShopModal{{ shop.id }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header bg-success text-white">
+                                            <h5 class="modal-title fw-bold"><i class="bi bi-qr-code me-2"></i>Shop Complaint QR: {{ shop.shop_code }}</h5>
+                                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body text-center p-4">
+                                            <h5 class="fw-bold mb-1">{{ shop.shop_name }}</h5>
+                                            <p class="text-muted small mb-3">Dealer: {{ shop.dealer_name }} &bull; Ward: {{ shop.ward }}</p>
+                                            
+                                            <div class="p-3 bg-light border rounded d-inline-block mb-3 shadow-sm">
+                                                <img src="{{ url_for('shop_qr_code', shop_id=shop.id) }}" alt="QR Code" style="width: 220px; height: 220px;">
+                                            </div>
+                                            
+                                            <p class="small text-muted mb-2">
+                                                Citizens scan this QR to file complaints or feedback directly linked to <strong>{{ shop.shop_code }}</strong>.
+                                            </p>
+                                            <code class="small text-break d-block p-2 bg-white border rounded text-dark">
+                                                {{ url_for('raise_complaint', shop_code=shop.shop_code, _external=True) }}
+                                            </code>
+                                        </div>
+                                        <div class="modal-footer d-flex justify-content-between">
+                                            <a href="{{ url_for('admin_shop_qr_print', shop_id=shop.id) }}" target="_blank" class="btn btn-outline-dark btn-sm">
+                                                <i class="bi bi-printer me-1"></i> Print Placard
+                                            </a>
+                                            <div class="d-flex gap-2">
+                                                <a href="{{ url_for('shop_qr_code', shop_id=shop.id, download=1) }}" class="btn btn-success btn-sm">
+                                                    <i class="bi bi-download me-1"></i> Download PNG
+                                                </a>
+                                                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

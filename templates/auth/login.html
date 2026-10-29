@@ -6,7 +6,8 @@
 <style>
 /* ==========================================================================
    Public Distribution System - Formal Civil Service Theme
-   Visual Identity: Warm Ivory, Forest Green, Muted Gold, Dark Charcoal
+   Visual Identity: Warm Ivory (#F8F7F2), Forest Green (#244A36), Muted Gold (#C5A15A), Dark Charcoal (#202820)
+   Universal Typography: 'Times New Roman', Times, serif
    ========================================================================== */
 
 body {
@@ -17,7 +18,7 @@ body {
     font-family: 'Times New Roman', Times, serif;
     background-color: #F8F7F2;
     color: #202820;
-    padding: 2rem 0 3rem 0;
+    padding: 2.5rem 0 3.5rem 0;
     min-height: calc(100vh - 160px);
     display: flex;
     align-items: center;
@@ -27,75 +28,122 @@ body {
 .login-split-frame {
     background-color: #FFFFFF;
     border: 1px solid #D8D5CC;
-    border-radius: 6px;
-    box-shadow: 0 4px 24px rgba(32, 40, 32, 0.07);
+    border-radius: 8px;
+    box-shadow: 0 8px 30px rgba(32, 40, 32, 0.08);
     overflow: hidden;
-    max-width: 1040px;
+    max-width: 1060px;
     width: 100%;
+    margin: 0 auto;
 }
 
 /* --- Left Section (Brand & Public Service Identity) --- */
 .login-visual-panel {
-    background-color: #F2EFE7;
+    background: radial-gradient(circle at top left, #FAF8F2 0%, #F0ECE1 100%);
     border-right: 1px solid #D8D5CC;
     padding: 3.5rem 3rem;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+    position: relative;
+}
+
+.login-visual-panel::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #244A36 0%, #C5A15A 50%, #244A36 100%);
 }
 
 .pds-gov-label {
-    font-size: 0.78rem;
+    font-size: 0.8rem;
     letter-spacing: 0.18em;
     font-weight: 700;
     color: #C5A15A;
     text-transform: uppercase;
     display: block;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.65rem;
 }
 
 .portal-main-heading {
-    font-size: 2.25rem;
+    font-size: 2.35rem;
     font-weight: 700;
     color: #244A36;
     line-height: 1.2;
-    margin-bottom: 1.15rem;
+    margin-bottom: 0.85rem;
 }
 
 .portal-tagline {
     color: #626B64;
     font-size: 1.08rem;
     line-height: 1.6;
-    margin-bottom: 2.5rem;
+    margin-bottom: 2rem;
 }
 
-/* Abstract Tasteful Grain Motif */
+/* Tasteful Food Grain Emblem Container */
 .grain-motif-container {
     display: flex;
     align-items: center;
     gap: 1.25rem;
-    padding: 1.5rem;
+    padding: 1.35rem 1.5rem;
     background-color: #FFFFFF;
     border: 1px solid #E2DFD7;
-    border-radius: 4px;
-    margin-bottom: 2rem;
+    border-left: 4px solid #C5A15A;
+    border-radius: 6px;
+    margin-bottom: 1.75rem;
+    box-shadow: 0 2px 6px rgba(32, 40, 32, 0.04);
 }
 
 .grain-motif-svg {
     flex-shrink: 0;
-    width: 48px;
-    height: 48px;
+    width: 52px;
+    height: 52px;
+    filter: drop-shadow(0 2px 4px rgba(36, 74, 54, 0.12));
 }
 
 .grain-motif-text {
-    font-size: 0.92rem;
+    font-size: 0.94rem;
     color: #202820;
     line-height: 1.45;
 }
 
+/* Trust Metric Badges */
+.pds-trust-stats {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 1.75rem;
+}
+
+.pds-stat-chip {
+    flex: 1;
+    background-color: #FFFFFF;
+    border: 1px solid #D8D5CC;
+    border-radius: 6px;
+    padding: 0.65rem 0.75rem;
+    text-align: center;
+}
+
+.pds-stat-chip-num {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #244A36;
+    display: block;
+    line-height: 1.1;
+}
+
+.pds-stat-chip-label {
+    font-size: 0.72rem;
+    color: #626B64;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 600;
+}
+
 .portal-trust-pillars {
     border-top: 1px solid #D8D5CC;
-    padding-top: 1.5rem;
+    padding-top: 1.35rem;
     margin-top: auto;
 }
 
@@ -114,7 +162,7 @@ body {
 .trust-pillar-item i {
     color: #244A36;
     margin-right: 0.75rem;
-    font-size: 1rem;
+    font-size: 1.05rem;
 }
 
 /* --- Right Section (Clean Access & Role Selector) --- */
@@ -127,14 +175,14 @@ body {
 }
 
 .access-heading {
-    font-size: 1.95rem;
+    font-size: 2rem;
     font-weight: 700;
     color: #202820;
     margin-bottom: 0.35rem;
 }
 
 .access-subheading {
-    font-size: 0.96rem;
+    font-size: 0.98rem;
     color: #626B64;
     margin-bottom: 1.75rem;
 }
@@ -144,7 +192,7 @@ body {
     display: flex;
     background-color: #F8F7F2;
     border: 1px solid #D8D5CC;
-    border-radius: 5px;
+    border-radius: 6px;
     padding: 4px;
     margin-bottom: 1.75rem;
     gap: 4px;
@@ -156,9 +204,10 @@ body {
     background: transparent;
     padding: 0.65rem 0.5rem;
     font-family: 'Times New Roman', Times, serif;
-    font-size: 0.98rem;
+    font-size: 16px;
+    min-height: 44px;
     font-weight: 700;
-    color: #626B64;
+    color: #555E57;
     border-radius: 4px;
     cursor: pointer;
     transition: all 0.15s ease-in-out;
@@ -177,7 +226,7 @@ body {
 .role-switch-btn.active {
     background-color: #244A36;
     color: #FFFFFF;
-    box-shadow: 0 1px 3px rgba(36, 74, 54, 0.25);
+    box-shadow: 0 2px 4px rgba(36, 74, 54, 0.25);
 }
 
 .role-switch-btn.active .role-icon {
@@ -185,7 +234,7 @@ body {
 }
 
 .role-icon {
-    font-size: 1rem;
+    font-size: 1.05rem;
     color: #626B64;
     transition: color 0.15s ease-in-out;
 }
@@ -197,7 +246,7 @@ body {
 
 .login-field-label {
     display: block;
-    font-size: 0.95rem;
+    font-size: 16.5px;
     font-weight: 700;
     color: #202820;
     margin-bottom: 0.45rem;
@@ -205,25 +254,27 @@ body {
 
 .login-text-input {
     width: 100%;
-    padding: 0.78rem 1rem;
+    padding: 0.75rem 1rem;
     font-family: inherit;
-    font-size: 1rem;
+    font-size: 16.5px;
+    min-height: 46px;
     color: #202820;
     background-color: #FFFFFF;
     border: 1px solid #D8D5CC;
-    border-radius: 4px;
+    border-radius: 6px;
     transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
 
 .login-text-input:focus {
     border-color: #244A36;
     outline: 0;
-    box-shadow: 0 0 0 3px rgba(36, 74, 54, 0.15);
+    box-shadow: 0 0 0 3px rgba(36, 74, 54, 0.2);
 }
 
 .login-text-input::placeholder {
-    color: #9A9E9A;
-    font-style: italic;
+    color: #707973;
+    font-style: normal;
+    opacity: 1;
 }
 
 /* Password Input with Visibility Toggle */
@@ -234,7 +285,7 @@ body {
 }
 
 .password-input-wrapper .login-text-input {
-    padding-right: 2.85rem;
+    padding-right: 3rem;
 }
 
 .password-toggle-trigger {
@@ -242,7 +293,7 @@ body {
     right: 0;
     top: 0;
     bottom: 0;
-    width: 2.85rem;
+    width: 3rem;
     border: none;
     background: transparent;
     color: #626B64;
@@ -252,6 +303,7 @@ body {
     justify-content: center;
     font-size: 1.15rem;
     transition: color 0.15s ease-in-out;
+    border-radius: 0 6px 6px 0;
 }
 
 .password-toggle-trigger:hover,
@@ -261,7 +313,7 @@ body {
 }
 
 .field-context-help {
-    font-size: 0.83rem;
+    font-size: 0.85rem;
     color: #626B64;
     margin-top: 0.35rem;
     line-height: 1.35;
@@ -277,10 +329,10 @@ body {
     font-family: 'Times New Roman', Times, serif;
     font-size: 1.12rem;
     font-weight: 700;
-    border-radius: 4px;
+    border-radius: 6px;
     cursor: pointer;
-    transition: background-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-    margin-top: 0.65rem;
+    transition: background-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out, transform 0.1s ease;
+    margin-top: 0.75rem;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -289,7 +341,12 @@ body {
 
 .btn-portal-submit:hover {
     background-color: #1B3829;
-    box-shadow: 0 4px 10px rgba(27, 56, 41, 0.22);
+    box-shadow: 0 4px 12px rgba(27, 56, 41, 0.25);
+    transform: translateY(-1px);
+}
+
+.btn-portal-submit:active {
+    transform: translateY(0);
 }
 
 .btn-portal-submit:focus {
@@ -303,7 +360,7 @@ body {
 }
 
 .login-portal-footer {
-    margin-top: 2rem;
+    margin-top: 1.75rem;
     text-align: center;
     font-size: 0.85rem;
     color: #626B64;
@@ -314,12 +371,12 @@ body {
 /* Responsive Stacking */
 @media (max-width: 991.98px) {
     .login-visual-panel {
-        padding: 2.75rem 2rem;
+        padding: 2.5rem 1.75rem;
         border-right: none;
         border-bottom: 1px solid #D8D5CC;
     }
     .login-access-panel {
-        padding: 2.75rem 2rem;
+        padding: 2.5rem 1.75rem;
     }
 }
 </style>
@@ -336,15 +393,16 @@ body {
                     
                     <!-- Dignified Grain / Agriculture Stalk Motif -->
                     <div class="mb-3">
-                        <svg class="grain-motif-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                            <path d="M24 44V10" stroke="#244A36" stroke-width="2.5" stroke-linecap="round"/>
-                            <path d="M24 10C24 10 27 5 24 2C21 5 24 10 24 10Z" fill="#C5A15A" stroke="#244A36" stroke-width="1.2"/>
-                            <path d="M24 17C27 13 32 14 33 18C30 19 26 18 24 17Z" fill="#C5A15A" stroke="#244A36" stroke-width="1.2"/>
-                            <path d="M24 17C21 13 16 14 15 18C18 19 22 18 24 17Z" fill="#C5A15A" stroke="#244A36" stroke-width="1.2"/>
-                            <path d="M24 25C28 21 34 22 35 26C31 28 26 26 24 25Z" fill="#C5A15A" stroke="#244A36" stroke-width="1.2"/>
-                            <path d="M24 25C20 21 14 22 13 26C17 28 22 26 24 25Z" fill="#C5A15A" stroke="#244A36" stroke-width="1.2"/>
-                            <path d="M24 33C28 29 34 30 35 34C31 36 26 34 24 33Z" fill="#C5A15A" stroke="#244A36" stroke-width="1.2"/>
-                            <path d="M24 33C20 29 14 30 13 34C17 36 22 34 24 33Z" fill="#C5A15A" stroke="#244A36" stroke-width="1.2"/>
+                        <svg class="grain-motif-svg" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <circle cx="26" cy="26" r="25" fill="#FFFFFF" stroke="#D8D5CC" stroke-width="1.5"/>
+                            <path d="M26 44V12" stroke="#244A36" stroke-width="2.5" stroke-linecap="round"/>
+                            <path d="M26 12C26 12 29.5 6 26 3C22.5 6 26 12 26 12Z" fill="#C5A15A" stroke="#244A36" stroke-width="1.2"/>
+                            <path d="M26 19C29.5 15 35 16 36 20C33 21 28.5 20 26 19Z" fill="#C5A15A" stroke="#244A36" stroke-width="1.2"/>
+                            <path d="M26 19C22.5 15 17 16 16 20C19 21 23.5 20 26 19Z" fill="#C5A15A" stroke="#244A36" stroke-width="1.2"/>
+                            <path d="M26 27C30.5 23 37 24 38 28C34 30 28.5 28 26 27Z" fill="#C5A15A" stroke="#244A36" stroke-width="1.2"/>
+                            <path d="M26 27C21.5 23 15 24 14 28C18 30 23.5 28 26 27Z" fill="#C5A15A" stroke="#244A36" stroke-width="1.2"/>
+                            <path d="M26 35C30.5 31 37 32 38 36C34 38 28.5 36 26 35Z" fill="#C5A15A" stroke="#244A36" stroke-width="1.2"/>
+                            <path d="M26 35C21.5 31 15 32 14 36C18 38 23.5 36 26 35Z" fill="#C5A15A" stroke="#244A36" stroke-width="1.2"/>
                         </svg>
                     </div>
 
@@ -358,6 +416,21 @@ body {
                         <div class="grain-motif-text">
                             <strong>Official Departmental Portal</strong><br>
                             Civil Supplies & Essential Commodity Distribution Monitoring
+                        </div>
+                    </div>
+
+                    <div class="pds-trust-stats">
+                        <div class="pds-stat-chip">
+                            <span class="pds-stat-chip-num">35,000+</span>
+                            <span class="pds-stat-chip-label">FPS Outlets</span>
+                        </div>
+                        <div class="pds-stat-chip">
+                            <span class="pds-stat-chip-num">100%</span>
+                            <span class="pds-stat-chip-label">Aadhaar PoS</span>
+                        </div>
+                        <div class="pds-stat-chip">
+                            <span class="pds-stat-chip-num">NFSA</span>
+                            <span class="pds-stat-chip-label">Compliant</span>
                         </div>
                     </div>
                 </div>
@@ -441,18 +514,22 @@ body {
                         <!-- Role-Specific Identifier Field -->
                         <div class="login-field-group">
                             <label for="usernameInput" class="login-field-label" id="usernameFieldLabel">
-                                Ration Card Number
+                                Ration Card Number / Mobile
                             </label>
                             <input type="text" 
                                    name="username" 
                                    id="usernameInput" 
                                    class="login-text-input" 
-                                   placeholder="Enter ration card number (e.g. RC-AAY-1001)" 
+                                   placeholder="Enter card number (e.g. RC-AAY-1001) or mobile" 
                                    required 
                                    autofocus 
-                                   autocomplete="username">
+                                   autocomplete="username"
+                                   autocorrect="off"
+                                   autocapitalize="off"
+                                   spellcheck="false"
+                                   aria-describedby="usernameContextHelp">
                             <div class="field-context-help" id="usernameContextHelp">
-                                Enter your registered household Ration Card number.
+                                Enter registered Ration Card number or registered mobile number.
                             </div>
                         </div>
 
@@ -468,11 +545,13 @@ body {
                                        class="login-text-input" 
                                        placeholder="Enter your password" 
                                        required 
-                                       autocomplete="current-password">
+                                       autocomplete="current-password"
+                                       aria-describedby="passwordContextHelp">
                                 <button type="button" 
                                         class="password-toggle-trigger" 
                                         id="togglePasswordBtn" 
                                         aria-label="Toggle password visibility" 
+                                        aria-pressed="false"
                                         tabindex="-1">
                                     <i class="bi bi-eye" id="togglePasswordIcon"></i>
                                 </button>
@@ -520,11 +599,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // Role configurations
     const roleConfigs = {
         customer: {
-            label: 'Ration Card Number',
-            placeholder: 'Enter ration card number (e.g. RC-AAY-1001)',
-            help: 'Enter your registered household Ration Card number.',
-            pwdLabel: 'Customer Password',
-            pwdHelp: 'Your individual cardholder account password.'
+            label: 'Ration Card Number / Mobile',
+            placeholder: 'Enter card number (e.g. RC-AAY-1001) or mobile',
+            help: 'Enter registered Ration Card number or registered mobile number.',
+            pwdLabel: 'Password',
+            pwdHelp: 'Cardholder account password (default: citizen123 or pass).'
         },
         dealer: {
             label: 'Dealer Username',
@@ -594,11 +673,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 togglePasswordIcon.classList.remove('bi-eye');
                 togglePasswordIcon.classList.add('bi-eye-slash');
                 togglePasswordBtn.setAttribute('aria-label', 'Hide password');
+                togglePasswordBtn.setAttribute('aria-pressed', 'true');
             } else {
                 passwordInput.type = 'password';
                 togglePasswordIcon.classList.remove('bi-eye-slash');
                 togglePasswordIcon.classList.add('bi-eye');
                 togglePasswordBtn.setAttribute('aria-label', 'Show password');
+                togglePasswordBtn.setAttribute('aria-pressed', 'false');
             }
         });
     }
