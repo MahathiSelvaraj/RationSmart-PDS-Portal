@@ -7,7 +7,10 @@
     <a href="javascript:history.back()" class="btn btn-outline-secondary">
         <i class="bi bi-arrow-left me-1"></i> Back
     </a>
-    <div>
+    <div class="d-flex gap-2">
+        <button type="button" class="btn btn-outline-primary fw-bold" onclick="speakOfficialReceipt(this)" title="பில் விவரங்களை குரல் மூலம் கேட்க (Listen Bill Speech)">
+            <i class="bi bi-volume-up-fill me-1"></i> 🔊 குரல் அறிவிப்பு (Audio)
+        </button>
         <button onclick="window.print()" class="btn btn-primary fw-bold">
             <i class="bi bi-printer-fill me-1"></i> Print Digital e-Receipt
         </button>
@@ -123,4 +126,25 @@
         <p class="mb-0">Toll-Free Consumer Helpline: <strong>1800-11-4000</strong> | portal: <strong>rationsmart.gov.in</strong></p>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function speakOfficialReceipt(btn) {
+    if (!window.pdsVoice) return;
+    const billNumber = "{{ transaction.bill_number }}";
+    const cardHolder = "{{ transaction.ration_card.head_of_family }}";
+    const totalAmount = {{ transaction.total_amount }};
+    const items = [
+        {% for item in transaction.items %}
+        {
+            name: "{{ item.commodity.name }}",
+            quantity: {{ item.quantity }},
+            unit: "{{ item.commodity.unit }}"
+        },
+        {% endfor %}
+    ];
+    window.pdsVoice.speakSaleReceipt(billNumber, cardHolder, items, totalAmount, btn);
+}
+</script>
 {% endblock %}

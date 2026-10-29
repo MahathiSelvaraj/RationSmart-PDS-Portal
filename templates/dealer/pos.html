@@ -100,9 +100,12 @@
                         {% set badge_info = selected_card.get_card_type_badge() %}
                         <span class="badge {{ badge_info[1] }} ms-2" id="posCardTypeDisplay">{{ badge_info[0] }}</span>
                     </div>
-                    <div>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
                         <span class="badge bg-dark"><i class="bi bi-people me-1"></i>{{ selected_card.family_members_count }} Member(s)</span>
-                        <span class="badge bg-secondary ms-1"><i class="bi bi-shield-check me-1"></i>Aadhaar: **{{ selected_card.aadhaar_last4 }}</span>
+                        <span class="badge bg-secondary"><i class="bi bi-shield-check me-1"></i>Aadhaar: **{{ selected_card.aadhaar_last4 }}</span>
+                        <button type="button" class="btn btn-sm btn-outline-primary fw-bold" id="btnVoiceAnnounceQuota" onclick="speakCurrentServerQuota(this)" title="ஒதுக்கீட்டை தமிழில் கேட்க (Listen Quota Announcement)">
+                            <i class="bi bi-volume-up-fill me-1"></i> 🔊 குரல் அறிவிப்பு (Audio)
+                        </button>
                     </div>
                 </div>
 
@@ -363,6 +366,7 @@ async function handleOfflineCardLookup(query) {
 }
 
 function renderOfflineQuotaForm(card) {
+    window._currentOfflineCard = card;
     const offlineContainer = document.getElementById('posOfflineBeneficiaryContainer');
     offlineContainer.classList.remove('d-none');
 
@@ -420,9 +424,12 @@ function renderOfflineQuotaForm(card) {
                         <span class="text-muted ms-2">(Card: <code>${card.cardNumber}</code>)</span>
                         <span class="badge bg-primary ms-2">${card.cardType}</span>
                     </div>
-                    <div>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
                         <span class="badge bg-dark"><i class="bi bi-people me-1"></i>${card.membersCount} Member(s)</span>
-                        <span class="badge bg-secondary ms-1"><i class="bi bi-shield-check me-1"></i>Aadhaar: **${card.aadhaarLast4 || 'XXXX'}</span>
+                        <span class="badge bg-secondary"><i class="bi bi-shield-check me-1"></i>Aadhaar: **${card.aadhaarLast4 || 'XXXX'}</span>
+                        <button type="button" class="btn btn-sm btn-outline-primary fw-bold" onclick="speakCurrentOfflineQuota(this)" title="ஒதுக்கீட்டை தமிழில் கேட்க (Listen Quota Announcement)">
+                            <i class="bi bi-volume-up-fill me-1"></i> 🔊 குரல் அறிவிப்பு (Audio)
+                        </button>
                     </div>
                 </div>
 
@@ -553,6 +560,7 @@ async function handleOfflineSaleSubmission() {
 }
 
 function showOfflineSuccessModal(sale) {
+    window._lastOfflineSale = sale;
     const modalBody = document.getElementById('posOfflineSuccessModalBody');
     const itemsRows = sale.items.map(i => `
         <tr>
@@ -572,6 +580,11 @@ function showOfflineSuccessModal(sale) {
                     <div class="small">This sale was recorded offline in device storage. It will upload automatically to the central PDS server upon reconnection.</div>
                 </div>
             </div>
+        </div>
+        <div class="mb-3">
+            <button type="button" class="btn btn-primary w-100 fw-bold py-2 shadow-sm" onclick="speakCurrentOfflineReceipt(this)">
+                <i class="bi bi-volume-up-fill me-2 fs-5"></i> 🔊 பில் விவரத்தை தமிழில் கேட்க (Listen Receipt Audio)
+            </button>
         </div>
         <div class="mb-3 border-bottom pb-2">
             <div class="d-flex justify-content-between">
@@ -618,6 +631,48 @@ function showOfflineSuccessModal(sale) {
 
 function resetPosForNextSale() {
     window.location.href = "{{ url_for('dealer_pos') }}";
+}
+
+// Voice Assistance Handlers
+function speakCurrentServerQuota(btn) {
+    if (!window.pdsVoice) return;
+    const cardHolder = document.getElementById('posCardHolderName')?.innerText?.trim() || 'Beneficiary';
+    const cardType = document.getElementById('posCardTypeDisplay')?.innerText?.trim() || 'Ration';
+    
+    const items = [];
+    document.querySelectorAll('.pos-item-row').forEach(row => {
+        const name = row.querySelector('.pos-qty-input')?.getAttribute('data-name') || row.querySelector('strong')?.innerText;
+        const remaining = parseFloat(row.querySelector('.pos-qty-input')?.getAttribute('data-max')) || 0;
+        const unit = row.querySelector('.pos-qty-input')?.getAttribute('data-unit') || 'kg';
+        if (name) {
+            items.push({ name, remaining_qty: remaining, unit });
+        }
+    });
+
+    window.pdsVoice.speakBeneficiaryQuota(cardHolder, cardType, items, btn);
+}
+
+function speakCurrentOfflineQuota(btn) {
+    if (!window._currentOfflineCard || !window.pdsVoice) return;
+    const card = window._currentOfflineCard;
+    const items = (card.quotaItems || []).map(i => ({
+        name: i.name || i.commodity_name,
+        remaining_qty: i.remaining_qty !== undefined ? i.remaining_qty : i.entitled_qty,
+        unit: i.unit
+    }));
+    window.pdsVoice.speakBeneficiaryQuota(card.headOfFamily, card.cardType, items, btn);
+}
+
+function speakCurrentOfflineReceipt(btn) {
+    if (!window._lastOfflineSale || !window.pdsVoice) return;
+    const sale = window._lastOfflineSale;
+    window.pdsVoice.speakSaleReceipt(
+        sale.clientSaleId,
+        sale.headOfFamily,
+        sale.items,
+        sale.totalAmount,
+        btn
+    );
 }
 </script>
 {% endblock %}

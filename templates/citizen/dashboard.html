@@ -167,9 +167,14 @@
                     <h5 class="fw-bold mb-0 text-primary">
                         <i class="bi bi-calendar-check-fill me-2"></i>Monthly Grain Quota Allocation ({{ quota_status.month_period }})
                     </h5>
-                    <span class="badge bg-primary px-3 py-2 text-wrap" style="letter-spacing: 0.02em;">
-                        <i class="bi bi-award-fill text-warning me-1"></i>Scheme: {{ quota_status.scheme_name or (card.card_type ~ ' Scheme') }}
-                    </span>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <button type="button" class="btn btn-sm btn-outline-primary fw-bold" onclick="speakCitizenDashboardQuota(this)" title="உங்கள் ஒதுக்கீட்டை தமிழில் கேட்க (Listen Quota Announcement)">
+                            <i class="bi bi-volume-up-fill me-1"></i> 🔊 குரல் அறிவிப்பு (Audio)
+                        </button>
+                        <span class="badge bg-primary px-3 py-2 text-wrap" style="letter-spacing: 0.02em;">
+                            <i class="bi bi-award-fill text-warning me-1"></i>Scheme: {{ quota_status.scheme_name or (card.card_type ~ ' Scheme') }}
+                        </span>
+                    </div>
                 </div>
                 <div class="card-body p-0">
                     <div tabindex="0" role="region" aria-label="Monthly Grain Quota Allocation Table" class="table-responsive">
@@ -454,4 +459,24 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function speakCitizenDashboardQuota(btn) {
+    if (!window.pdsVoice) return;
+    const cardHolder = "{{ card.head_of_family }}";
+    const cardType = "{{ card.card_type }}";
+    const quotaItems = [
+        {% for item in quota_status.quota_items %}
+        {
+            name: "{{ item.commodity_name if item.commodity_name else item.name }}",
+            remaining_qty: {{ item.remaining_qty }},
+            unit: "{{ item.unit }}"
+        },
+        {% endfor %}
+    ];
+    window.pdsVoice.speakBeneficiaryQuota(cardHolder, cardType, quotaItems, btn);
+}
+</script>
 {% endblock %}
