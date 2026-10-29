@@ -496,6 +496,7 @@ function renderOfflineQuotaForm(card) {
 
     // Re-initialize POS calculator for the newly rendered offline form
     initPOSCalculator();
+    if (window.pdsI18n) window.pdsI18n.applyCurrentLanguage();
 }
 
 async function handleOfflineSaleSubmission() {
@@ -627,6 +628,7 @@ function showOfflineSuccessModal(sale) {
 
     const modal = new bootstrap.Modal(document.getElementById('posOfflineSuccessModal'));
     modal.show();
+    if (window.pdsI18n) window.pdsI18n.applyCurrentLanguage();
 }
 
 function resetPosForNextSale() {

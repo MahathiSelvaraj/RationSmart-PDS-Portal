@@ -59,6 +59,12 @@
 
             <!-- Right Header Section (PWA Status, Install, User Profile or Sign In) -->
             <div class="d-flex align-items-center gap-2 gap-md-3">
+                <!-- Real-Time Language Switcher (தமிழ் / English) -->
+                <button type="button" class="btn btn-outline-warning btn-sm fw-bold d-flex align-items-center gap-1 shadow-xs" id="pdsLangToggleBtn" onclick="window.pdsI18n && window.pdsI18n.toggleLanguage()" title="Switch Language / மொழி மாற்றம்">
+                    <i class="bi bi-translate text-warning"></i>
+                    <span id="pdsCurrentLangLabel">தமிழ்</span>
+                </button>
+
                 <!-- PWA Online / Offline Connection Status Indicator -->
                 <div id="pwaConnectionStatus" class="pds-connection-pill online" title="System connected to district central server">
                     <span class="pds-status-dot online"></span>
@@ -389,6 +395,8 @@
     <script src="{{ url_for('static', filename='js/pwa.js') }}"></script>
     <!-- Rural Accessibility & Voice Assistance Engine -->
     <script src="{{ url_for('static', filename='js/voice_assistant.js') }}"></script>
+    <!-- Bilingual Localization Engine (தமிழ் ⇄ English) -->
+    <script src="{{ url_for('static', filename='js/i18n.js') }}"></script>
     
     {% block scripts %}{% endblock %}
 </body>
