@@ -117,13 +117,16 @@
     </div>
 
     <!-- Footer Security QR & Verification Notice -->
-    <div class="text-center pt-2 border-top small text-muted">
-        <div class="p-2 border d-inline-block bg-white mb-2 rounded">
-            <i class="bi bi-qr-code fs-1 text-dark"></i>
-            <div style="font-size: 0.65rem;" class="font-monospace text-muted">TX: {{ transaction.bill_number }}</div>
+    <div class="text-center pt-3 border-top small text-muted">
+        <div class="p-2 border d-inline-block bg-white mb-2 rounded shadow-xs text-center">
+            <img src="{{ url_for('receipt_qr_code', transaction_id=transaction.id) }}" alt="Receipt QR Verification Code" style="width: 140px; height: 140px;" class="d-block mx-auto mb-1">
+            <span class="badge bg-success text-white px-2 py-1" style="font-size: 0.72rem; letter-spacing: 0.05em;">
+                <i class="bi bi-camera me-1"></i> SCAN TO VERIFY
+            </span>
+            <div style="font-size: 0.68rem;" class="font-monospace text-muted mt-1">{{ transaction.bill_number }}</div>
         </div>
-        <p class="mb-1">This is a system-generated authentic digital e-Ration cash memo.</p>
-        <p class="mb-0">Toll-Free Consumer Helpline: <strong>1800-11-4000</strong> | portal: <strong>rationsmart.gov.in</strong></p>
+        <p class="mb-1 fw-semibold text-dark">Scan this official QR seal with any mobile camera to verify authenticity on the central PDS server.</p>
+        <p class="mb-0 text-muted">Anti-Tampering Cryptographic Verification &bull; Toll-Free: <strong>1800-11-4000</strong></p>
     </div>
 </div>
 {% endblock %}

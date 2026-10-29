@@ -624,6 +624,21 @@ function showOfflineSuccessModal(sale) {
                 </tr>
             </tfoot>
         </table>
+        <div class="text-center pt-2 border-top mt-2">
+            <div class="p-2 border d-inline-block bg-white rounded shadow-xs mb-1">
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(window.location.origin + '/verify-receipt/' + sale.clientSaleId)}" 
+                     alt="Offline Sale Verification QR" 
+                     style="width: 120px; height: 120px;" 
+                     class="d-block mx-auto mb-1"
+                     onerror="this.parentElement.style.display='none'">
+                <span class="badge bg-warning text-dark px-2 py-1" style="font-size: 0.68rem;">
+                    <i class="bi bi-qr-code me-1"></i> OFFLINE DIGITAL SEAL
+                </span>
+            </div>
+            <div class="small text-muted" style="font-size: 0.75rem;">
+                Scan with mobile camera to verify receipt online after synchronization.
+            </div>
+        </div>
     `;
 
     const modal = new bootstrap.Modal(document.getElementById('posOfflineSuccessModal'));

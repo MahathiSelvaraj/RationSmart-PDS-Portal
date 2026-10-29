@@ -446,6 +446,48 @@ def create_app(config_class=Config):
 
         return render_template('reports/receipt.html', transaction=tx)
 
+    @app.route('/qr/receipt/<int:transaction_id>')
+    def receipt_qr_code(transaction_id):
+        tx = db.session.get(DistributionTransaction, transaction_id)
+        if not tx:
+            abort(404)
+        target_url = url_for('public_verify_receipt', bill_number=tx.bill_number, _external=True)
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_M,
+            box_size=6,
+            border=2,
+        )
+        qr.add_data(target_url)
+        qr.make(fit=True)
+        img = qr.make_image(fill_color="#0F3D64", back_color="white")
+        img_io = io.BytesIO()
+        img.save(img_io, 'PNG')
+        img_io.seek(0)
+        return send_file(img_io, mimetype='image/png')
+
+    @app.route('/verify-receipt/<bill_number>')
+    @app.route('/verify-receipt')
+    def public_verify_receipt(bill_number=None):
+        if not bill_number:
+            bill_number = request.args.get('bill_number', '').strip()
+            
+        tx = None
+        if bill_number:
+            tx = DistributionTransaction.query.filter_by(bill_number=bill_number).first()
+            if not tx:
+                # Also try matching clientSaleId for synced offline transactions
+                tx = DistributionTransaction.query.filter_by(client_sale_id=bill_number).first()
+        
+        # Calculate cryptographic tamper-evident verification seal
+        digital_seal = None
+        if tx:
+            import hashlib
+            raw_signature = f"{tx.bill_number}:{tx.ration_card.card_number}:{tx.total_amount}:{tx.shop.shop_code}:{tx.transaction_date.isoformat()}"
+            digital_seal = hashlib.sha256(raw_signature.encode('utf-8')).hexdigest()[:32].upper()
+
+        return render_template('reports/public_receipt_verify.html', transaction=tx, searched_bill=bill_number, digital_seal=digital_seal)
+
 
     # =========================================================================
     # DEALER POS & OPERATIONS
