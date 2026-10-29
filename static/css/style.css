@@ -1366,21 +1366,36 @@ footer.gov-footer a:hover {
   box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.25);
 }
 
-/* Tamil Offline Banner */
+/* Tamil Offline Banner - Accessible, High-Contrast Amber / Gold Advisory Theme */
 .pds-offline-banner {
-  background: linear-gradient(90deg, #8C1818 0%, #A82020 100%);
-  color: #FFFFFF;
-  border-bottom: 2px solid #C5A15A;
-  padding: 8px 0;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+  background: linear-gradient(90deg, #FEF3C7 0%, #FDE68A 100%);
+  color: #78350F;
+  border-bottom: 2px solid #D97706;
+  border-top: 1px solid #FCD34D;
+  padding: 10px 0;
+  box-shadow: 0 3px 12px rgba(180, 83, 9, 0.12);
   position: relative;
   z-index: 1010;
   font-family: var(--pds-font-family);
 }
 
-.pds-offline-banner strong {
-  font-size: 15.5px;
+.pds-offline-banner .pds-offline-title {
+  color: #78350F !important;
+  font-size: 16px;
+  font-weight: 700;
   letter-spacing: 0.01em;
+}
+
+.pds-offline-banner .pds-offline-subtitle {
+  color: #92400E !important;
+  font-size: 13.5px;
+  font-weight: 500;
+  display: block;
+}
+
+.pds-offline-banner .pds-offline-icon {
+  color: #D97706 !important;
+  font-size: 1.5rem;
 }
 
 /* Sync Status Badges */
