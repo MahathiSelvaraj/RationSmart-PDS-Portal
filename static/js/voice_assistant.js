@@ -3,10 +3,9 @@
  * Uses W3C Web Speech API (speechSynthesis)
  * 100% Offline-capable, zero external API keys.
  * 
- * DUAL-LAYER TAMIL SYNTHESIS:
- * Layer 1: Native Tamil Voice (ta-IN / Valluvar / Pallavi / Google Tamil) using pure Tamil script.
- * Layer 2: Phonetic Tamil (Tanglish) using Indian English voice (Heera / Ravi / en-IN),
- *          so even without a Tamil voice installed, the user hears TAMIL words, never English!
+ * 100% PURE TAMIL & PHONETIC TAMIL CONVERSION:
+ * Converts all numbers (15, 20, 6, 1) and units (kg, liter) into pure Tamil words:
+ * e.g. "அரிசி இருபது கிலோ" / "Arisi Irupathu kilo" (Never "arisi 20kg"!)
  */
 
 class PDSVoiceAssistant {
@@ -118,8 +117,8 @@ class PDSVoiceAssistant {
                 utteranceLang = 'ta-IN';
                 selectedVoice = tamilVoice;
             } else {
-                // No native Tamil voice installed on OS -> Speak Phonetic Tamil (Tanglish)
-                // Using Indian English voice (Heera/Ravi) so it sounds like Tamil spoken aloud!
+                // No native Tamil voice installed on OS -> Speak 100% Phonetic Tamil (Tanglish)
+                // Using Indian English voice so it speaks genuine Tamil words!
                 textToSpeak = textTanglish;
                 utteranceLang = 'en-IN';
                 selectedVoice = indianVoice;
@@ -160,25 +159,30 @@ class PDSVoiceAssistant {
 
     // High-Level Helper: Speak Beneficiary Quota
     speakBeneficiaryQuota(cardHolder, cardType, quotaItems, triggerButton = null) {
-        // 1. Pure Tamil Text (for native Tamil TTS)
+        const cardTypeTamil = translateCardTypeToTamil(cardType);
+        const cardTypeTanglish = translateCardTypeToTanglish(cardType);
+
+        // 1. Pure Tamil Text (Numbers converted to Tamil words: "பதினைந்து கிலோ", "இருபது கிலோ")
         const tamilItems = quotaItems.map(item => {
             const comm = translateCommodityToTamil(item.name || item.commodity_name);
             const unit = translateUnitToTamil(item.unit);
-            const qty = item.remaining_qty !== undefined ? item.remaining_qty : item.entitled_qty;
-            return `${comm} ${qty} ${unit}`;
+            const qtyRaw = item.remaining_qty !== undefined ? item.remaining_qty : item.entitled_qty;
+            const qtyWords = numberToTamilWords(qtyRaw);
+            return `${comm} ${qtyWords} ${unit}`;
         }).join(', ');
 
-        const textTamil = `வணக்கம் ${cardHolder} அவர்களே. உங்கள் ${cardType} ரேஷன் அட்டைக்கான இந்த மாத ஒதுக்கீடு விவரம்: ${tamilItems}. நியாய விலைக் கடையில் பெற்றுக்கொள்ளலாம். நன்றி.`;
+        const textTamil = `வணக்கம் ${cardHolder} அவர்களே! உங்கள் ${cardTypeTamil}க்கான இந்த மாத உணவுப் பொருள் ஒதுக்கீடு விவரம்: ${tamilItems}. நியாய விலைக் கடையில் பெற்றுக்கொள்ளலாம். நன்றி!`;
 
-        // 2. Tanglish Phonetic Text (for Indian/English voices to speak Tamil phonetically)
+        // 2. Tanglish Phonetic Text (Phonetic Tamil words: "Arisi irupathu kilo, Gothumai aaru kilo")
         const tanglishItems = quotaItems.map(item => {
             const comm = translateCommodityToTanglish(item.name || item.commodity_name);
             const unit = translateUnitToTanglish(item.unit);
-            const qty = item.remaining_qty !== undefined ? item.remaining_qty : item.entitled_qty;
-            return `${comm} ${qty} ${unit}`;
+            const qtyRaw = item.remaining_qty !== undefined ? item.remaining_qty : item.entitled_qty;
+            const qtyWords = numberToTanglishWords(qtyRaw);
+            return `${comm} ${qtyWords} ${unit}`;
         }).join(', ');
 
-        const textTanglish = `Vanakkam ${cardHolder} avargale. Ungal ${cardType} ration cardukku intha maatha othukkeedu vivaram: ${tanglishItems}. Niyaya vilai kadaiyil petrukkollalaam. Nandri.`;
+        const textTanglish = `Vanakkam ${cardHolder} avargaley! Ungal ${cardTypeTanglish}-kkaana intha maatha unavu porul othukkeedu vivaram: ${tanglishItems}. Niyaya vilai kadaiyil petruk kollalaam. Nandri!`;
 
         // 3. English Text
         const englishItems = quotaItems.map(item => {
@@ -199,26 +203,29 @@ class PDSVoiceAssistant {
     // High-Level Helper: Speak Sale / Bill Receipt
     speakSaleReceipt(billNumber, cardHolder, items, totalAmount, triggerButton = null) {
         const amtVal = parseFloat(totalAmount) || 0;
+        const cleanBill = billNumber ? String(billNumber).replace(/-/g, ' ') : '';
 
         // 1. Pure Tamil Text
         const tamilItems = items.map(item => {
             const comm = translateCommodityToTamil(item.name || item.commodity_name);
             const unit = translateUnitToTamil(item.unit);
-            return `${comm} ${item.quantity} ${unit}`;
+            const qtyWords = numberToTamilWords(item.quantity);
+            return `${comm} ${qtyWords} ${unit}`;
         }).join(', ');
 
-        const amtTamil = amtVal === 0 ? 'இலவசம்' : `ரூபாய் ${amtVal.toFixed(0)}`;
-        const textTamil = `வணக்கம் ${cardHolder} அவர்களே. உங்கள் பில் எண் ${billNumber}. வழங்கப்பட்ட பொருட்கள்: ${tamilItems}. மொத்த பில் தொகை: ${amtTamil}. பொருட்கள் வெற்றிகரமாக வழங்கப்பட்டது. நன்றி.`;
+        const amtTamil = amtVal === 0 ? 'முற்றிலும் இலவசம்' : `${numberToTamilWords(amtVal)} ரூபாய்`;
+        const textTamil = `வணக்கம் ${cardHolder} அவர்களே! பில் எண் ${cleanBill}. வழங்கப்பட்ட உணவுப் பொருட்கள்: ${tamilItems}. மொத்த தொகை: ${amtTamil}. பொருட்கள் வெற்றிகரமாக வழங்கப்பட்டது. நன்றி!`;
 
         // 2. Tanglish Phonetic Text
         const tanglishItems = items.map(item => {
             const comm = translateCommodityToTanglish(item.name || item.commodity_name);
             const unit = translateUnitToTanglish(item.unit);
-            return `${comm} ${item.quantity} ${unit}`;
+            const qtyWords = numberToTanglishWords(item.quantity);
+            return `${comm} ${qtyWords} ${unit}`;
         }).join(', ');
 
-        const amtTanglish = amtVal === 0 ? 'Ilavasam' : `${amtVal.toFixed(0)} Roobai`;
-        const textTanglish = `Vanakkam ${cardHolder} avargale. Ungal bill en ${billNumber}. Vazhangappatta porutkal: ${tanglishItems}. Mottha bill thogai: ${amtTanglish}. Porutkal vetrigaramaaga vazhangappattathu. Nandri.`;
+        const amtTanglish = amtVal === 0 ? 'Muttrilum Ilavasam' : `${numberToTanglishWords(amtVal)} Roobai`;
+        const textTanglish = `Vanakkam ${cardHolder} avargaley! Bill en ${cleanBill}. Vazhangappatta unavu porutkal: ${tanglishItems}. Mottha thogai: ${amtTanglish}. Porutkal vetrigaramaaga vazhangappattathu. Nandri!`;
 
         // 3. English Text
         const englishItems = items.map(item => `${item.quantity} ${item.unit} of ${item.name || item.commodity_name}`).join(', ');
@@ -234,7 +241,124 @@ class PDSVoiceAssistant {
     }
 }
 
-// Global Translation Helpers (Pure Tamil)
+// =========================================================================
+// Number to Tamil & Tanglish Words Converters (No raw numbers!)
+// =========================================================================
+
+function numberToTamilWords(n) {
+    n = parseFloat(n) || 0;
+    if (n === 0) return 'பூஜ்ஜியம்';
+    if (Math.abs(n - 0.5) < 0.05) return 'அரை';
+
+    const ones = ['', 'ஒன்று', 'இரண்டு', 'மூன்று', 'நான்கு', 'ஐந்து', 'ஆறு', 'ஏழு', 'எட்டு', 'ஒன்பது'];
+    const teens = {
+        10: 'பத்து', 11: 'பதினொன்று', 12: 'பன்னிரண்டு', 13: 'பதின்மூன்று', 14: 'பதினான்கு',
+        15: 'பதினைந்து', 16: 'பதினாறு', 17: 'பதினேழு', 18: 'பதினெட்டு', 19: 'பத்தொன்பது'
+    };
+    const tens = ['', '', 'இருபது', 'முப்பது', 'நாற்பது', 'ஐம்பது', 'அறுபது', 'எழுபது', 'எண்பது', 'தொண்ணூறு'];
+    const tensPrefix = ['', '', 'இருபத்து ', 'முப்பத்து ', 'நாற்பத்து ', 'ஐம்பத்து ', 'அறுபத்து ', 'எழுபத்து ', 'எண்பத்து ', 'தொண்ணூற்று '];
+
+    const intPart = Math.floor(n);
+    const hasHalf = (n % 1 >= 0.4 && n % 1 <= 0.6);
+
+    let word = '';
+    if (intPart < 10) {
+        word = (intPart === 1) ? 'ஒரு' : ones[intPart];
+    } else if (intPart >= 10 && intPart < 20) {
+        word = teens[intPart];
+    } else if (intPart >= 20 && intPart < 100) {
+        const t = Math.floor(intPart / 10);
+        const rem = intPart % 10;
+        if (rem === 0) {
+            word = tens[t];
+        } else {
+            word = tensPrefix[t] + (rem === 1 ? 'ஒரு' : ones[rem]);
+        }
+    } else {
+        word = String(intPart);
+    }
+
+    if (hasHalf) {
+        if (intPart === 0) return 'அரை';
+        if (intPart === 1) return 'ஒன்றரை';
+        if (intPart === 2) return 'இரண்டரை';
+        return word + ' அரை';
+    }
+
+    return word;
+}
+
+function numberToTanglishWords(n) {
+    n = parseFloat(n) || 0;
+    if (n === 0) return 'Poojiyam';
+    if (Math.abs(n - 0.5) < 0.05) return 'Arai';
+
+    const ones = ['', 'Ondru', 'Irandu', 'Moondru', 'Naangu', 'Ainthu', 'Aaru', 'Yezhu', 'Yettu', 'Onpathu'];
+    const teens = {
+        10: 'Pathu', 11: 'Pathinondru', 12: 'Pannirandu', 13: 'Pathinmoondru', 14: 'Pathinaangu',
+        15: 'Pathinainthu', 16: 'Pathinaaru', 17: 'Pathinezhu', 18: 'Pathinettu', 19: 'Pathonpathu'
+    };
+    const tens = ['', '', 'Irupathu', 'Muppathu', 'Naarpathu', 'Aimpathu', 'Arupathu', 'Yezhupathu', 'Yenpathu', 'Thonnooru'];
+    const tensPrefix = ['', '', 'Irupaththe ', 'Muppaththe ', 'Naarpaththe ', 'Aimpaththe ', 'Arupaththe ', 'Yezhupaththe ', 'Yenpaththe ', 'Thonnootru '];
+
+    const intPart = Math.floor(n);
+    const hasHalf = (n % 1 >= 0.4 && n % 1 <= 0.6);
+
+    let word = '';
+    if (intPart < 10) {
+        word = (intPart === 1) ? 'Oru' : ones[intPart];
+    } else if (intPart >= 10 && intPart < 20) {
+        word = teens[intPart];
+    } else if (intPart >= 20 && intPart < 100) {
+        const t = Math.floor(intPart / 10);
+        const rem = intPart % 10;
+        if (rem === 0) {
+            word = tens[t];
+        } else {
+            word = tensPrefix[t] + (rem === 1 ? 'Oru' : ones[rem]);
+        }
+    } else {
+        word = String(intPart);
+    }
+
+    if (hasHalf) {
+        if (intPart === 0) return 'Arai';
+        if (intPart === 1) return 'Ondrarai';
+        if (intPart === 2) return 'Irandarai';
+        return word + ' arai';
+    }
+
+    return word;
+}
+
+// =========================================================================
+// Card Type Translation Helpers
+// =========================================================================
+
+function translateCardTypeToTamil(cardType) {
+    if (!cardType) return 'ரேஷன் அட்டை';
+    const ct = cardType.toUpperCase();
+    if (ct.includes('AAY')) return 'அந்தியோதயா அன்ன யோஜனா மஞ்சள் அட்டை';
+    if (ct.includes('PHH')) return 'முன்னுரிமை குடும்ப அட்டை';
+    if (ct.includes('NPHH')) return 'முன்னுரிமையற்ற குடும்ப அட்டை';
+    if (ct.includes('AY')) return 'அன்னபூர்ணா முதியோர் அட்டை';
+    return `${cardType} அட்டை`;
+}
+
+function translateCardTypeToTanglish(cardType) {
+    if (!cardType) return 'ration card';
+    const ct = cardType.toUpperCase();
+    if (ct.includes('AAY')) return 'Anthiyodhaya Anna Yojana card';
+    if (ct.includes('PHH')) return 'Munnurimai Kudumba card';
+    if (ct.includes('NPHH')) return 'Munnurimaiyatra Kudumba card';
+    if (ct.includes('AY')) return 'Annapoorna Muthiyor card';
+    return `${cardType} card`;
+}
+
+// =========================================================================
+// Commodity & Unit Translation Helpers
+// =========================================================================
+
 function translateCommodityToTamil(name) {
     if (!name) return 'பொருள்';
     const n = name.toLowerCase();
@@ -255,7 +379,6 @@ function translateUnitToTamil(unit) {
     return unit;
 }
 
-// Global Translation Helpers (Phonetic Tanglish for Indian English Voice)
 function translateCommodityToTanglish(name) {
     if (!name) return 'porul';
     const n = name.toLowerCase();
