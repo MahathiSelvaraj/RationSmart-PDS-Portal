@@ -37,9 +37,16 @@
     <div class="col-lg-8">
         <!-- Offline Mode Notice Banner -->
         <div id="posOfflineModeIndicator" class="alert alert-warning py-2 px-3 mb-3 d-none">
-            <i class="bi bi-cloud-slash fs-5 me-2 align-middle"></i>
-            <strong>Offline POS Terminal Active:</strong>
-            Operating from local IndexedDB cache. Sales will be recorded locally as <span class="badge badge-sync-pending">Pending Sync</span> and synchronized upon reconnection.
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                <div>
+                    <i class="bi bi-cloud-slash fs-5 me-2 align-middle"></i>
+                    <strong>Offline POS Terminal Active:</strong>
+                    Operating from local IndexedDB cache. Sales will be recorded locally as <span class="badge badge-sync-pending">Pending Sync</span> and synchronized upon reconnection.
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-dark fw-bold d-none" id="btnPosExitSim" onclick="window.RationSmartPWA && window.RationSmartPWA.setDevOffline(false)">
+                    <i class="bi bi-power me-1"></i> Exit Simulation / Go Online
+                </button>
+            </div>
         </div>
 
         <!-- Beneficiary Search Bar -->
@@ -66,9 +73,9 @@
                 <!-- Quick test helper chips -->
                 <div class="mt-2 small text-muted">
                     <span>Quick Test: </span>
-                    <a href="{{ url_for('dealer_pos', card_number='RC-AAY-1001', shop_id=shop.id) }}" class="badge bg-light text-dark border text-decoration-none">RC-AAY-1001 (Yellow)</a>
-                    <a href="{{ url_for('dealer_pos', card_number='RC-PHH-2001', shop_id=shop.id) }}" class="badge bg-light text-dark border text-decoration-none">RC-PHH-2001 (Pink)</a>
-                    <a href="{{ url_for('dealer_pos', card_number='RC-AY-4001', shop_id=shop.id) }}" class="badge bg-light text-dark border text-decoration-none">RC-AY-4001 (Green)</a>
+                    <a href="{{ url_for('dealer_pos', card_number='RC-AAY-1001', shop_id=shop.id) }}" class="badge bg-light text-dark border text-decoration-none pos-quick-card-btn" data-card="RC-AAY-1001">RC-AAY-1001 (Yellow)</a>
+                    <a href="{{ url_for('dealer_pos', card_number='RC-PHH-2001', shop_id=shop.id) }}" class="badge bg-light text-dark border text-decoration-none pos-quick-card-btn" data-card="RC-PHH-2001">RC-PHH-2001 (Pink)</a>
+                    <a href="{{ url_for('dealer_pos', card_number='RC-AY-4001', shop_id=shop.id) }}" class="badge bg-light text-dark border text-decoration-none pos-quick-card-btn" data-card="RC-AY-4001">RC-AY-4001 (Green)</a>
                 </div>
             </div>
         </div>
@@ -309,6 +316,17 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    document.querySelectorAll('.pos-quick-card-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            if (window.RationSmartPWA && !window.RationSmartPWA.isOnline()) {
+                e.preventDefault();
+                const cardNum = btn.getAttribute('data-card');
+                if (searchInput) searchInput.value = cardNum;
+                await handleOfflineCardLookup(cardNum);
+            }
+        });
+    });
 });
 
 async function handleOfflineCardLookup(query) {
@@ -484,7 +502,7 @@ async function handleOfflineSaleSubmission() {
 
     const cardNum = document.getElementById('posCardNumberRawOffline')?.value || document.getElementById('posCardNumberRaw')?.value;
     const cardHolder = document.getElementById('posCardHolderOffline')?.value || document.getElementById('posCardHolderName')?.innerText || 'Beneficiary';
-    const cardType = document.getElementById('posCardTypeOffline')?.value || 'PHH';
+    const cardType = document.getElementById('posCardTypeOffline')?.value || document.getElementById('posCardTypeDisplay')?.innerText?.trim() || 'PHH';
     const authMode = document.getElementById('posAuthModeSelectOffline')?.value || document.getElementById('posAuthModeSelect')?.value || 'Biometric Aadhaar (Offline Verified)';
     const paymentMode = document.getElementById('posPaymentModeSelectOffline')?.value || document.getElementById('posPaymentModeSelect')?.value || 'Cash / Direct Subsidy';
     const shopId = document.getElementById('posShopId')?.value;

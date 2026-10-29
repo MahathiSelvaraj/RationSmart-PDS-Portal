@@ -11,7 +11,7 @@ class RationSmartPWA {
     constructor() {
         this.db = null;
         this.deferredInstallPrompt = null;
-        this.devOfflineSimulation = false;
+        this.devOfflineSimulation = localStorage.getItem('pwa_dev_offline_sim') === 'true';
         this.isSyncing = false;
         this.init();
     }
@@ -198,6 +198,21 @@ class RationSmartPWA {
             }
         }
 
+        const exitSimBtn = document.getElementById('btnExitOfflineSim');
+        const modeBadge = document.getElementById('pwaOfflineModeBadge');
+
+        if (exitSimBtn) {
+            if (this.devOfflineSimulation) {
+                exitSimBtn.classList.remove('d-none');
+            } else {
+                exitSimBtn.classList.add('d-none');
+            }
+        }
+
+        if (modeBadge) {
+            modeBadge.innerText = this.devOfflineSimulation ? 'OFFLINE (SIMULATION)' : 'OFFLINE MODE';
+        }
+
         if (syncNowBtn) {
             syncNowBtn.disabled = !online || this.isSyncing;
         }
@@ -208,6 +223,7 @@ class RationSmartPWA {
 
     updatePosOfflineIndicators() {
         const posIndicator = document.getElementById('posOfflineModeIndicator');
+        const posExitSimBtn = document.getElementById('btnPosExitSim');
         const stockBadges = document.querySelectorAll('.pos-stock-offline-badge');
         const online = this.isOnline();
 
@@ -216,6 +232,14 @@ class RationSmartPWA {
                 posIndicator.classList.remove('d-none');
             } else {
                 posIndicator.classList.add('d-none');
+            }
+        }
+
+        if (posExitSimBtn) {
+            if (this.devOfflineSimulation) {
+                posExitSimBtn.classList.remove('d-none');
+            } else {
+                posExitSimBtn.classList.add('d-none');
             }
         }
 
@@ -233,9 +257,35 @@ class RationSmartPWA {
         if (simToggle) {
             simToggle.checked = this.devOfflineSimulation;
             simToggle.addEventListener('change', (e) => {
-                this.devOfflineSimulation = e.target.checked;
-                this.updateConnectionUI();
+                this.setDevOffline(e.target.checked);
             });
+        }
+    }
+
+    async setDevOffline(enabled) {
+        if (enabled && navigator.onLine) {
+            // Pre-cache before simulating offline to ensure offline card lookups work smoothly
+            try {
+                await this.bootstrapDealerCache();
+            } catch (err) {
+                console.warn('[PWA] Bootstrap cache warning:', err);
+            }
+        }
+
+        this.devOfflineSimulation = Boolean(enabled);
+        localStorage.setItem('pwa_dev_offline_sim', this.devOfflineSimulation ? 'true' : 'false');
+
+        const simToggle = document.getElementById('devOfflineSimulationToggle');
+        if (simToggle) {
+            simToggle.checked = this.devOfflineSimulation;
+        }
+
+        this.updateConnectionUI();
+
+        // Switched back to online: auto-sync pending sales
+        if (!this.devOfflineSimulation && navigator.onLine) {
+            this.bootstrapDealerCache();
+            setTimeout(() => this.syncPendingSales(), 500);
         }
     }
 
