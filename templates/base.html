@@ -26,7 +26,7 @@
     
     {% block head %}{% endblock %}
 </head>
-<body class="page-bg">
+<body class="page-bg{% if (current_user.is_authenticated and current_user.role == 'dealer') or (request.path and request.path.startswith('/dealer')) %} dealer-page-bg{% elif (current_user.is_authenticated and current_user.role == 'admin') or (request.path and request.path.startswith('/admin')) %} admin-page-bg{% endif %} {% block body_class %}{% endblock %}">
 
     <!-- 1. Top Government Identity Ribbon (Tamil Nadu State PDS) -->
     <div class="gov-topbar">
@@ -132,7 +132,7 @@
                         </ul>
                     </div>
                 {% else %}
-                    <a href="{{ url_for('login') }}" class="btn btn-primary btn-sm fw-bold px-3">
+                    <a href="{{ url_for('login') }}" class="btn btn-primary btn-sm fw-bold px-3" style="background: linear-gradient(135deg, #D97736 0%, #C86524 100%) !important; border: 1px solid #B45309 !important; color: #FFFFFF !important; box-shadow: 0 2px 4px rgba(217, 119, 54, 0.25) !important;">
                         <i class="bi bi-lock-fill me-1"></i> Sign In / Login
                     </a>
                 {% endif %}

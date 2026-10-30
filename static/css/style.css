@@ -104,6 +104,53 @@ body {
   background-repeat: no-repeat !important;
 }
 
+/* Admin specific background: Golden sunrise paddy landscape */
+body.admin-page-bg,
+.page-bg.admin-page-bg,
+.admin-page-bg {
+  background-color: #FFF9F2 !important;
+  background-image: 
+    linear-gradient(rgba(255, 249, 242, 0.20), rgba(255, 249, 242, 0.30)),
+    url('/static/images/admin-landscape-background.jpg') !important;
+  background-size: cover !important;
+  background-position: center 30% !important;
+  background-attachment: fixed !important;
+  background-repeat: no-repeat !important;
+}
+
+@media (max-width: 768px) {
+  body.admin-page-bg,
+  .page-bg.admin-page-bg,
+  .admin-page-bg {
+    background-position: 50% center !important;
+    background-attachment: scroll !important;
+  }
+}
+
+/* Dealer specific background: Grain godown / warehouse photograph */
+body.dealer-page-bg,
+.page-bg.dealer-page-bg,
+.dealer-page-bg {
+  background-color: #FFF9F2 !important;
+  background-image: 
+    linear-gradient(rgba(255, 249, 242, 0.20), rgba(255, 249, 242, 0.30)),
+    url('/static/images/dealer-godown-background.jpg') !important;
+  background-size: cover !important;
+  background-position: center 30% !important;
+  background-attachment: fixed !important;
+  background-repeat: no-repeat !important;
+}
+
+@media (max-width: 768px) {
+  body.dealer-page-bg,
+  .page-bg.dealer-page-bg,
+  .dealer-page-bg {
+    background-position: 50% center !important;
+    background-attachment: scroll !important;
+  }
+}
+
+
 .section-bg {
   background-color: #FFF0E2 !important;
   background-image: none !important;
@@ -413,16 +460,20 @@ input[type="radio"] {
 
 .btn-primary {
   background-color: var(--pds-primary) !important;
-  border-color: var(--pds-primary-dark) !important;
+  background: linear-gradient(135deg, #D97736 0%, #C86524 100%) !important;
+  background-color: #D97736 !important;
+  border-color: #B45309 !important;
   color: #FFFFFF !important;
+  box-shadow: 0 2px 6px rgba(217, 119, 54, 0.25) !important;
 }
 
 .btn-primary:hover,
 .btn-primary:focus {
-  background-color: var(--pds-primary-dark) !important;
-  border-color: #132B1F !important;
+  background: linear-gradient(135deg, #C25E20 0%, #A8490B 100%) !important;
+  background-color: #C25E20 !important;
+  border-color: #9A430A !important;
   color: #FFFFFF !important;
-  box-shadow: 0 4px 12px rgba(36, 74, 54, 0.32) !important;
+  box-shadow: 0 4px 14px rgba(180, 83, 9, 0.35) !important;
   transform: translateY(-1px);
 }
 
