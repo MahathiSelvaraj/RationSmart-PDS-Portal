@@ -90,11 +90,9 @@ def create_app(config_class=Config):
         try:
             db.create_all()
             # Safe production auto-initialization for Gunicorn on cloud platforms (e.g. Render)
-            # Only runs if the database contains 0 users; never overwrites existing users or passwords.
             if app.config.get('AUTO_SEED_IF_EMPTY', True) and not app.config.get('TESTING', False):
-                if not User.query.first():
-                    from seed_data import seed_database
-                    seed_database(app)
+                from seed_data import seed_database
+                seed_database(app)
         except Exception:
             try:
                 db.session.rollback()
