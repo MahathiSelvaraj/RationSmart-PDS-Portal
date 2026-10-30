@@ -104,17 +104,16 @@
         </div>
 
         <div class="p-4 p-md-5">
-            <!-- Citizen Identity Strip -->
+            <!-- Citizen Identity Strip (Anonymous Beneficiary Privacy Protection) -->
             {% if card %}
             <div class="citizen-badge-strip">
                 <div class="row align-items-center g-2">
                     <div class="col-md-7">
-                        <small class="text-muted d-block">Authenticated Beneficiary</small>
-                        <strong class="fs-6 text-dark">{{ card.head_of_family }}</strong>
-                        <span class="badge bg-warning text-dark ms-2">{{ card.card_type }}</span>
+                        <small class="text-muted d-block">Complainant Privacy Status</small>
+                        <strong class="fs-6 text-success"><i class="bi bi-shield-check me-1"></i>Anonymous / Confidential Submission</strong>
+                        <span class="badge bg-secondary ms-2">Name Hidden</span>
                         <div class="small text-muted mt-1">
-                            <i class="bi bi-card-text me-1"></i> Card No: <strong>{{ card.card_number }}</strong>
-                            {% if card.mobile %}&nbsp;|&nbsp;<i class="bi bi-telephone me-1"></i> {{ card.mobile }}{% endif %}
+                            <i class="bi bi-card-text me-1"></i> Linked Ration Card: <strong>{{ card.card_number }}</strong>
                         </div>
                     </div>
                     <div class="col-md-5 text-md-end">
@@ -128,10 +127,10 @@
             <div class="citizen-badge-strip">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <small class="text-muted d-block">Authenticated Official / User</small>
-                        <strong class="fs-6 text-dark">{{ current_user.full_name }} ({{ current_user.role|upper }})</strong>
+                        <small class="text-muted d-block">Complainant Privacy Status</small>
+                        <strong class="fs-6 text-success"><i class="bi bi-shield-check me-1"></i>Anonymous / Confidential Submission</strong>
                     </div>
-                    <span class="badge bg-primary">{{ current_user.username }}</span>
+                    <span class="badge bg-secondary">Name Hidden</span>
                 </div>
             </div>
             {% endif %}

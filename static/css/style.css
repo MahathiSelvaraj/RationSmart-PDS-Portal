@@ -1813,8 +1813,8 @@ footer.gov-footer a:hover {
   height: 44px !important;
   min-width: 44px !important;
   background-color: #FFF0E2 !important;
-  color: #D97736 !important;
-  border: 1px solid #FCE4CC !important;
+  color: #9A3412 !important;
+  border: 1px solid #FDBA74 !important;
   border-radius: 8px !important;
   display: flex !important;
   align-items: center !important;
@@ -1834,6 +1834,6 @@ footer.gov-footer a:hover {
 }
 
 .role-access-card:hover .role-access-chevron {
-  color: #D97736 !important;
+  color: #9A3412 !important;
   transform: translateX(3px);
 }

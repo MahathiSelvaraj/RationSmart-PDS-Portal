@@ -102,7 +102,7 @@
                 <thead class="table-light small">
                     <tr>
                         <th>Complaint ID</th>
-                        <th>Citizen & Card</th>
+                        <th>Ration Card & Identity</th>
                         <th>Category</th>
                         <th>Subject & Issue</th>
                         <th>Date Registered</th>
@@ -122,8 +122,8 @@
                             {% endif %}
                         </td>
                         <td>
-                            <strong class="d-block">{{ c.citizen_name }}</strong>
-                            <small class="text-muted"><i class="bi bi-card-text me-1"></i>{{ c.ration_card_number }}</small>
+                            <code class="d-block fw-bold text-dark">{{ c.ration_card_number }}</code>
+                            <small class="text-muted"><i class="bi bi-shield-check me-1 text-success"></i>Beneficiary (Anonymous)</small>
                         </td>
                         <td>
                             <span class="badge bg-light text-dark border">{{ c.category }}</span>
@@ -161,8 +161,8 @@
                                             <div class="row g-3 mb-3 p-3 bg-light rounded border small">
                                                 <div class="col-sm-4">
                                                     <span class="text-muted d-block">Citizen</span>
-                                                    <strong>{{ c.citizen_name }}</strong>
-                                                    <div class="text-muted">{{ c.citizen_phone }}</div>
+                                                    <strong class="text-success"><i class="bi bi-shield-check me-1"></i>Beneficiary (Anonymous)</strong>
+                                                    <div class="text-muted">Identity Protected</div>
                                                 </div>
                                                 <div class="col-sm-4">
                                                     <span class="text-muted d-block">Ration Card</span>

@@ -156,7 +156,76 @@ const PDS_I18N_DICT = {
     'FREE': 'இலவசம்',
     'FREE (₹0.00)': 'இலவசம் (₹0.00)',
     'Per Person': 'ஒருவருக்கு',
-    'Per Card': 'அட்டைக்கு'
+    'Per Card': 'அட்டைக்கு',
+    // Stock Status & Shop Badges
+    'Adequate': 'போதுமானது',
+    'Insufficient Data': 'போதிய தரவு இல்லை',
+    'Low Stock Alert': 'குறைந்த இருப்பு எச்சரிக்கை',
+    'Low Stock': 'குறைந்த இருப்பு',
+    'Current Inventory': 'தற்போதைய இருப்பு',
+    'Shop Stock Status': 'கடை இருப்பு நிலை',
+    'Offline Cache': 'ஆஃப்லைன் தற்காலிக சேமிப்பு',
+    'Threshold': 'வரம்பு',
+    'Threshold:': 'வரம்பு:',
+
+    // Replenishment Requests Page
+    'Stock Replenishment Requests': 'இருப்பு நிரப்புதல் கோரிக்கைகள்',
+    'Stock Replenishment': 'இருப்பு நிரப்புதல்',
+    'Received request replenishment': 'இருப்பு கோரிக்கை பெறப்பட்டது',
+    'Request Replenishment': 'இருப்பு கோருக',
+    'Submit New Stock Request': 'புதிய இருப்பு கோரிக்கை சமர்ப்பிக்கவும்',
+    'Submit Replenishment Indent': 'இருப்பு கோரிக்கையைச் சமர்ப்பி',
+    'Submit Request': 'கோரிக்கையைச் சமர்ப்பி',
+    'Select Commodity': 'உணவுப் பொருளைத் தேர்ந்தெடுக்கவும்',
+    'Select Commodity *': 'உணவுப் பொருளைத் தேர்ந்தெடுக்கவும் *',
+    '-- Choose Commodity --': '-- உணவுப் பொருளைத் தேர்ந்தெடுக்கவும் --',
+    'Current Shop Stock': 'தற்போதைய கடை இருப்பு',
+    'Alert Threshold': 'எச்சரிக்கை வரம்பு',
+    'Requested Quantity': 'கோரப்பட்ட அளவு',
+    'Requested Quantity *': 'கோரப்பட்ட அளவு *',
+    'e.g. 500.0': 'எ.கா. 500.0',
+    'kg/L': 'கிலோ / லிட்டர்',
+    'Enter positive quantity required to sustain entitlement distribution.': 'ஒதுக்கீட்டு விநியோகத்தை பராமரிக்க தேவையான அளவை உள்ளிடவும்.',
+    'Justification / Reason for Indent': 'கோரிக்கைக்கான காரணம் / விளக்கம்',
+    'Justification / Reason for Indent *': 'கோரிக்கைக்கான காரணம் / விளக்கம் *',
+    'Explain the requirement (e.g. Stock below threshold, upcoming holiday footfall surge, high customer density in ward)...': 'தேவையை விளக்குங்கள் (எ.கா. வரம்பிற்கு கீழ் இருப்பு, விடுமுறை நாட்களில் கூடுதல் வருகை, வார்டில் அதிக நுகர்வோர் எண்ணிக்கை)...',
+    'Minimum 5 characters. Justification will be reviewed by District Supply Office.': 'குறைந்தபட்சம் 5 எழுத்துக்கள். இந்த விளக்கம் மாவட்ட வழங்கல் அலுவலகத்தால் மதிப்பாய்வு செய்யப்படும்.',
+    'Indent History & Decision Trail': 'கோரிக்கை வரலாறு & முடிவு விவரங்கள்',
+    'All Statuses': 'அனைத்து நிலைகளும்',
+    'No Replenishment Requests Found': 'இருப்பு கோரிக்கைகள் எதுவும் காணப்படவில்லை',
+    'Use the form on the left to submit your first stock indent.': 'உங்கள் முதல் இருப்பு கோரிக்கையைச் சமர்ப்பிக்க இடதுபுறத்தில் உள்ள படிவத்தைப் பயன்படுத்தவும்.',
+    'Submit stock indent requests, monitor District DSO approvals, and safely record physical delivery receipts.': 'இருப்பு கோரிக்கைகளைச் சமர்ப்பிக்கவும், மாவட்ட DSO ஒப்புதல்களைக் கண்காணிக்கவும், டெலிவரி ரசீதுகளைப் பதிவு செய்யவும்.',
+
+    // Navigation & Table Actions
+    'My Stock Monitor': 'இருப்பு கண்காணிப்பு',
+    'Open POS Counter': 'பில்லிங் கவுண்டரைத் திற',
+    'Total Indents': 'மொத்தக் கோரிக்கைகள்',
+    'All-Time Requests': 'எல்லாக் காலக் கோரிக்கைகள்',
+    'Pending Review': 'பரிசீலனையில் உள்ளவை',
+    'Awaiting Admin Decision': 'நிர்வாக முடிவுக்கு காத்திருக்கிறது',
+    'Approved / In-Transit': 'ஒப்புதல் அளிக்கப்பட்டது / வழியில்',
+    'Ready for Stock Receipt': 'சரக்கு வரவு பெற தயார்',
+    'Fulfilled Stocks': 'நிறைவேற்றப்பட்ட சரக்குகள்',
+    'Received & Updated': 'பெறப்பட்டு புதுப்பிக்கப்பட்டது',
+    'Request ID': 'கோரிக்கை எண்',
+    'Requested': 'கோரப்பட்டது',
+    'Details / Reason': 'விவரங்கள் / காரணம்',
+    'Actions': 'செயல்கள்',
+    'Cancel': 'ரத்து செய்',
+    'Record Receipt': 'இருப்பு வரவு பதிவு',
+    'Stock Added': 'சரக்கு சேர்க்கப்பட்டது',
+    'Closed': 'முடிக்கப்பட்டது',
+    'Cancelled': 'ரத்து செய்யப்பட்டது',
+    'Snapshot:': 'இருப்பு நிலை:',
+    'DSO Remark:': 'DSO குறிப்பு:',
+    'Record Physical Stock Receipt': 'நேரடி சரக்கு வரவைப் பதிவு செய்க',
+    'Request Identifier': 'கோரிக்கை எண்',
+    'Approved Quantity': 'ஒப்புதல் அளிக்கப்பட்ட அளவு',
+    'Actual Received Quantity': 'உண்மையில் பெறப்பட்ட அளவு',
+    'Delivery Challan / Invoice No.': 'டெலிவரி சலான் / இன்வாய்ஸ் எண்',
+    'Confirm Stock Receipt & Update Shop Ledger': 'சரக்கு வரவை உறுதிசெய்து இருப்பைப் புதுப்பி',
+    'Confirm Stock Receipt': 'சரக்கு வரவை உறுதி செய்',
+
 };
 
 // Reverse Dictionary (Tamil -> English)
@@ -252,6 +321,25 @@ class PDSI18n {
     }
 
     translateInputsAndPlaceholders(targetLang) {
+        const dict = targetLang === 'ta' ? PDS_I18N_DICT : PDS_I18N_REVERSE;
+
+        // 1. Inputs and Textareas with placeholder
+        document.querySelectorAll('input[placeholder], textarea[placeholder]').forEach(el => {
+            const ph = el.getAttribute('placeholder');
+            if (ph && dict[ph.trim()]) {
+                el.setAttribute('placeholder', dict[ph.trim()]);
+            }
+        });
+
+        // 2. Select option texts
+        document.querySelectorAll('select option').forEach(opt => {
+            const txt = opt.textContent.trim();
+            if (txt && dict[txt]) {
+                opt.textContent = dict[txt];
+            }
+        });
+
+        // 3. Card search specific fallback
         const searchInput = document.getElementById('posCardSearchInput');
         if (searchInput) {
             if (targetLang === 'ta') {

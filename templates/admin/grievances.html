@@ -119,7 +119,7 @@
                         <thead class="table-light small">
                             <tr>
                                 <th>Complaint ID</th>
-                                <th>Citizen & Contact</th>
+                                <th>Ration Card & Identity</th>
                                 <th>Fair Price Shop</th>
                                 <th>Category & Issue</th>
                                 <th>Submitted On</th>
@@ -139,8 +139,8 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <strong class="d-block">{{ g.citizen_name }}</strong>
-                                    <small class="text-muted d-block"><i class="bi bi-card-text me-1"></i>{{ g.ration_card_number }}</small>
+                                    <code class="d-block fw-bold text-dark">{{ g.ration_card_number }}</code>
+                                    <small class="text-muted d-block"><i class="bi bi-shield-check me-1 text-success"></i>Beneficiary (Anonymous)</small>
                                 </td>
                                 <td>
                                     <strong class="d-block small">{{ g.shop.shop_code if g.shop else 'N/A' }}</strong>
@@ -178,9 +178,9 @@
                                                     <!-- Metadata Row -->
                                                     <div class="row g-3 mb-3 p-3 bg-light rounded border">
                                                         <div class="col-sm-4">
-                                                            <small class="text-muted d-block">Complainant Citizen</small>
-                                                            <strong>{{ g.citizen_name }}</strong>
-                                                            <div class="small text-muted">{{ g.citizen_phone }}</div>
+                                                            <small class="text-muted d-block">Complainant</small>
+                                                            <strong class="text-success"><i class="bi bi-shield-check me-1"></i>Beneficiary (Anonymous)</strong>
+                                                            <div class="small text-muted">Identity Protected</div>
                                                         </div>
                                                         <div class="col-sm-4">
                                                             <small class="text-muted d-block">Ration Card Number</small>

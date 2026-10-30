@@ -456,13 +456,37 @@ def create_app(config_class=Config):
         canonical_data = f"{tx.bill_number}|{tx.ration_card.card_number}|{tx.total_amount:.2f}|{tx.shop.shop_code}|{tx.transaction_date.strftime('%Y-%m-%d %H:%M:%S')}"
         return hmac.new(secret_key.encode('utf-8'), canonical_data.encode('utf-8'), hashlib.sha256).hexdigest()[:32].upper()
 
+    def _get_lan_ip():
+        import socket
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            s.connect(('8.8.8.8', 80))
+            return s.getsockname()[0]
+        except Exception:
+            return '127.0.0.1'
+        finally:
+            s.close()
+
     @app.route('/qr/receipt/<int:transaction_id>')
     def receipt_qr_code(transaction_id):
         tx = db.session.get(DistributionTransaction, transaction_id)
         if not tx:
             abort(404)
         sig = generate_receipt_hmac(tx, app.config['SECRET_KEY'])
+        
+        # Determine accessible target_url: if accessed via localhost/127.0.0.1, rewrite hostname to LAN IP
+        # so smartphones scanning from the same Wi-Fi / Hotspot can connect without 'refused to connect'
         target_url = url_for('public_verify_receipt', bill_number=tx.bill_number, sig=sig, _external=True)
+        try:
+            host_header = request.host.lower()
+            if 'localhost' in host_header or '127.0.0.1' in host_header:
+                lan_ip = _get_lan_ip()
+                port = request.host.split(':')[1] if ':' in request.host else '5000'
+                scheme = request.scheme or 'http'
+                path_and_query = url_for('public_verify_receipt', bill_number=tx.bill_number, sig=sig)
+                target_url = f"{scheme}://{lan_ip}:{port}{path_and_query}"
+        except Exception:
+            pass
         qr = qrcode.QRCode(
             version=1,
             error_correction=qrcode.constants.ERROR_CORRECT_M,
