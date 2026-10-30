@@ -26,7 +26,7 @@
     
     {% block head %}{% endblock %}
 </head>
-<body class="page-bg{% if (current_user.is_authenticated and current_user.role == 'dealer') or (request.path and request.path.startswith('/dealer')) %} dealer-page-bg{% elif (current_user.is_authenticated and current_user.role == 'admin') or (request.path and request.path.startswith('/admin')) %} admin-page-bg{% endif %} {% block body_class %}{% endblock %}">
+<body class="page-bg{% if (current_user.is_authenticated and current_user.role == 'dealer') or (request.path and request.path.startswith('/dealer')) %} dealer-page-bg{% elif (current_user.is_authenticated and current_user.role == 'admin') or (request.path and request.path.startswith('/admin')) %} admin-page-bg{% elif (current_user.is_authenticated and current_user.role == 'citizen') or (request.path and request.path.startswith('/citizen')) %} citizen-page-bg{% endif %} {% block body_class %}{% endblock %}">
 
     <!-- 1. Top Government Identity Ribbon (Tamil Nadu State PDS) -->
     <div class="gov-topbar">

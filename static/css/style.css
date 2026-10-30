@@ -104,6 +104,30 @@ body {
   background-repeat: no-repeat !important;
 }
 
+
+/* Citizen specific background: Citizen receiving food grains from dealer */
+body.citizen-page-bg,
+.page-bg.citizen-page-bg,
+.citizen-page-bg {
+  background-color: #FFF9F2 !important;
+  background-image: 
+    linear-gradient(rgba(255, 249, 242, 0.22), rgba(255, 249, 242, 0.32)),
+    url('/static/images/citizen-distribution-background.jpg') !important;
+  background-size: cover !important;
+  background-position: center 25% !important;
+  background-attachment: fixed !important;
+  background-repeat: no-repeat !important;
+}
+
+@media (max-width: 768px) {
+  body.citizen-page-bg,
+  .page-bg.citizen-page-bg,
+  .citizen-page-bg {
+    background-position: 50% center !important;
+    background-attachment: scroll !important;
+  }
+}
+
 /* Admin specific background: Golden sunrise paddy landscape */
 body.admin-page-bg,
 .page-bg.admin-page-bg,
