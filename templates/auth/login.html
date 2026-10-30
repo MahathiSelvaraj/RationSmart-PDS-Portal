@@ -10,13 +10,9 @@
    Universal Typography: 'Times New Roman', Times, serif
    ========================================================================== */
 
-.page-bg {
-    background-color: #F8F7F2 !important;
-}
-
 .login-portal-wrapper {
     font-family: 'Times New Roman', Times, serif;
-    background-color: #F8F7F2;
+    background-color: transparent;
     color: #202820;
     padding: 2.5rem 0 3.5rem 0;
     min-height: calc(100vh - 160px);
@@ -54,7 +50,7 @@
     left: 0;
     right: 0;
     height: 4px;
-    background: linear-gradient(90deg, #0F3D64 0%, #C5A15A 50%, #0F3D64 100%);
+    background: linear-gradient(90deg, #E65100 0%, #FF9800 50%, #138808 100%);
 }
 
 .pds-gov-label {
@@ -322,9 +318,9 @@
 /* Submit Action Button */
 .btn-portal-submit {
     width: 100%;
-    background-color: #0F3D64;
+    background: linear-gradient(135deg, #E65100 0%, #D84315 100%);
     color: #FFFFFF;
-    border: 1px solid #0B2D4A;
+    border: 1px solid #BF360C;
     padding: 0.88rem;
     font-family: 'Times New Roman', Times, serif;
     font-size: 1.12rem;
@@ -391,7 +387,16 @@
                 <div>
                     <span class="pds-gov-label">PUBLIC DISTRIBUTION SYSTEM</span>
                     
-                    <!-- Dignified Grain / Agriculture Stalk Motif -->
+                    <!-- Tamil Nadu Government Emblem & Grain Motif -->
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                        <div style="background: #FFFFFF; border: 2.5px solid #E65100; border-radius: 50%; padding: 4px; width: 64px; height: 64px; box-shadow: 0 4px 12px rgba(230,81,0,0.25); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <img src="{{ url_for('static', filename='img/tn_gov_logo.svg') }}" alt="Tamil Nadu Government Emblem" style="width: 100%; height: 100%; object-fit: contain;">
+                        </div>
+                        <div>
+                            <span class="badge" style="background-color: #E65100; color: #FFFFFF; font-size: 0.72rem; letter-spacing: 0.05em;">TNePDS &bull; தமிழ்நாடு அரசு</span>
+                            <div class="fw-bold text-dark" style="font-size: 0.88rem; line-height: 1.25;">உணவு பொருள் வழங்கல் மற்றும் நுகர்வோர் பாதுகாப்புத் துறை</div>
+                        </div>
+                    </div>
                     <div class="mb-3">
                         <svg class="grain-motif-svg" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                             <circle cx="26" cy="26" r="25" fill="#FFFFFF" stroke="#D8D5CC" stroke-width="1.5"/>
