@@ -320,7 +320,8 @@
     <!-- 4. Main Content Area -->
     <main class="content-wrapper">
         <div class="container">
-            <!-- Flash Messages -->
+            <!-- Flash Messages (dedicated alert box is provided inside login) -->
+            {% if request.endpoint != 'login' %}
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                     <div class="mb-4">
@@ -342,6 +343,7 @@
                     </div>
                 {% endif %}
             {% endwith %}
+            {% endif %}
 
             {% block content %}{% endblock %}
         </div>

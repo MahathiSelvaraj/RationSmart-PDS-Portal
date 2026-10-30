@@ -3,18 +3,25 @@
 {% block title %}Sign In - Digital Ration Shop{% endblock %}
 
 {% block head %}
+<!-- Google Fonts: Poppins (Headings), Inter (Body & Controls), Noto Sans Tamil (Tamil text) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Tamil:wght@400;500;600;700&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet">
+
 <style>
 /* ==========================================================================
-   Public Distribution System - Formal Civil Service Theme
-   Visual Identity: Warm Ivory (#F8F7F2), Forest Green (#244A36), Muted Gold (#C5A15A), Dark Charcoal (#202820)
-   Universal Typography: 'Times New Roman', Times, serif
+   RationSmart Academic PDS Portal - Modern Refined Orange Theme
+   Design Tokens: Warm Ivory (#F8F7F2, #FFF9F2), Soft Peach (#FFF0E2), Muted Orange (#D97736),
+   Deep Saffron (#C86524), Dark Charcoal (#202820, #292524), Readable Grey (#626B64, #625B53)
+   Preserved Token Fallbacks: #244A36, #C5A15A, 'Times New Roman'
+   Typography: 'Poppins' for Headings, 'Inter' for Body/Forms, 'Noto Sans Tamil' for Tamil
    ========================================================================== */
 
 .login-portal-wrapper {
-    font-family: 'Times New Roman', Times, serif;
+    font-family: 'Inter', var(--pds-font-family), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background-color: transparent;
-    color: #202820;
-    padding: 2.5rem 0 3.5rem 0;
+    color: #292524;
+    padding: 2rem 0 3.5rem 0;
     min-height: calc(100vh - 160px);
     display: flex;
     align-items: center;
@@ -23,20 +30,20 @@
 
 .login-split-frame {
     background-color: #FFFFFF;
-    border: 1px solid #D8D5CC;
-    border-radius: 8px;
-    box-shadow: 0 8px 30px rgba(32, 40, 32, 0.08);
+    border: 1px solid #EADCCB;
+    border-radius: 12px;
+    box-shadow: 0 12px 36px rgba(41, 37, 36, 0.10);
     overflow: hidden;
-    max-width: 1060px;
+    max-width: 1080px;
     width: 100%;
     margin: 0 auto;
 }
 
-/* --- Left Section (Brand & Public Service Identity) --- */
+/* --- Left Section (Brand & Feature Highlights Panel) --- */
 .login-visual-panel {
     background: linear-gradient(135deg, rgba(255, 249, 242, 0.98) 0%, rgba(255, 240, 226, 0.98) 100%);
     border-right: 1px solid #EADCCB;
-    padding: 3.5rem 3rem;
+    padding: 3rem 2.5rem;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -50,137 +57,140 @@
     left: 0;
     right: 0;
     height: 4px;
-    background: linear-gradient(90deg, #E65100 0%, #FF9800 50%, #138808 100%);
+    background: linear-gradient(90deg, #D97736 0%, #E9A34A 50%, #C86524 100%);
 }
 
 .pds-gov-label {
-    font-size: 0.8rem;
-    letter-spacing: 0.18em;
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.78rem;
+    letter-spacing: 0.16em;
     font-weight: 700;
-    color: #C5A15A;
+    color: #D97736;
     text-transform: uppercase;
-    display: block;
-    margin-bottom: 0.65rem;
-}
-
-.portal-main-heading {
-    font-size: 2.35rem;
-    font-weight: 700;
-    color: #0F3D64;
-    line-height: 1.2;
+    display: inline-block;
     margin-bottom: 0.85rem;
 }
 
+/* Brand Title & Tagline */
+.portal-main-heading {
+    font-family: 'Poppins', sans-serif;
+    font-size: 2.25rem;
+    font-weight: 800;
+    color: #292524;
+    line-height: 1.2;
+    margin-bottom: 0.5rem;
+    letter-spacing: -0.02em;
+}
+
 .portal-tagline {
-    color: #626B64;
-    font-size: 1.08rem;
-    line-height: 1.6;
-    margin-bottom: 2rem;
-}
-
-/* Tasteful Food Grain Emblem Container */
-.grain-motif-container {
-    display: flex;
-    align-items: center;
-    gap: 1.25rem;
-    padding: 1.35rem 1.5rem;
-    background-color: #FFFFFF;
-    border: 1px solid #E2DFD7;
-    border-left: 4px solid #C5A15A;
-    border-radius: 6px;
-    margin-bottom: 1.75rem;
-    box-shadow: 0 2px 6px rgba(32, 40, 32, 0.04);
-}
-
-.grain-motif-svg {
-    flex-shrink: 0;
-    width: 52px;
-    height: 52px;
-    filter: drop-shadow(0 2px 4px rgba(36, 74, 54, 0.12));
-}
-
-.grain-motif-text {
-    font-size: 0.94rem;
-    color: #202820;
-    line-height: 1.45;
-}
-
-/* Trust Metric Badges */
-.pds-trust-stats {
-    display: flex;
-    gap: 12px;
+    font-family: 'Inter', sans-serif;
+    color: #625B53;
+    font-size: 0.98rem;
+    line-height: 1.55;
     margin-bottom: 1.75rem;
 }
 
-.pds-stat-chip {
-    flex: 1;
-    background-color: #FFFFFF;
-    border: 1px solid #D8D5CC;
-    border-radius: 6px;
-    padding: 0.65rem 0.75rem;
-    text-align: center;
+/* Compact Feature Highlight Cards */
+.login-feature-highlights {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    margin-bottom: 1.75rem;
 }
 
-.pds-stat-chip-num {
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: #0F3D64;
-    display: block;
-    line-height: 1.1;
-}
-
-.pds-stat-chip-label {
-    font-size: 0.72rem;
-    color: #626B64;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    font-weight: 600;
-}
-
-.portal-trust-pillars {
-    border-top: 1px solid #D8D5CC;
-    padding-top: 1.35rem;
-    margin-top: auto;
-}
-
-.trust-pillar-item {
+.feature-highlight-card {
     display: flex;
     align-items: center;
+    gap: 1rem;
+    padding: 0.85rem 1rem;
+    background-color: #FFFFFF;
+    border: 1px solid #EADCCB;
+    border-left: 3.5px solid #D97736;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(41, 37, 36, 0.04);
+    transition: transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.feature-highlight-card:hover {
+    transform: translateX(3px);
+    box-shadow: 0 4px 12px rgba(217, 119, 54, 0.12);
+}
+
+.feature-highlight-icon {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    background-color: #FFF0E2;
+    color: #D97736;
+    border: 1px solid #FCE4CC;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+}
+
+.feature-highlight-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.feature-highlight-content strong {
+    font-family: 'Poppins', sans-serif;
     font-size: 0.92rem;
-    color: #202820;
-    margin-bottom: 0.65rem;
+    font-weight: 600;
+    color: #292524;
+    line-height: 1.3;
 }
 
-.trust-pillar-item:last-child {
-    margin-bottom: 0;
+.feature-highlight-content span {
+    font-size: 0.82rem;
+    color: #625B53;
+    line-height: 1.35;
 }
 
-.trust-pillar-item i {
-    color: #0F3D64;
-    margin-right: 0.75rem;
-    font-size: 1.05rem;
+/* Left Panel Footer Notice */
+.login-prototype-badge {
+    border-top: 1px solid #EADCCB;
+    padding-top: 1rem;
+    margin-top: auto;
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    font-size: 0.82rem;
+    color: #625B53;
+    line-height: 1.4;
 }
 
-/* --- Right Section (Clean Access & Role Selector) --- */
+.login-prototype-badge i {
+    color: #D97736;
+    font-size: 1.15rem;
+    flex-shrink: 0;
+}
+
+/* --- Right Section (Access Panel & Role Form) --- */
 .login-access-panel {
     background-color: #FFFFFF;
-    padding: 3.5rem 3.25rem;
+    padding: 3.25rem 3rem;
     display: flex;
     flex-direction: column;
     justify-content: center;
 }
 
 .access-heading {
-    font-size: 2rem;
+    font-family: 'Poppins', sans-serif;
+    font-size: 1.95rem;
     font-weight: 700;
-    color: #202820;
-    margin-bottom: 0.35rem;
+    color: #292524;
+    margin-bottom: 0.25rem;
+    letter-spacing: -0.01em;
 }
 
 .access-subheading {
-    font-size: 0.98rem;
-    color: #626B64;
-    margin-bottom: 1.75rem;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.95rem;
+    color: #625B53;
+    margin-bottom: 1.6rem;
 }
 
 /* Role Selector Tabs */
@@ -188,87 +198,90 @@
     display: flex;
     background-color: #FFF0E2;
     border: 1px solid #EADCCB;
-    border-radius: 6px;
+    border-radius: 8px;
     padding: 4px;
-    margin-bottom: 1.75rem;
+    margin-bottom: 1.5rem;
     gap: 4px;
 }
 
 .role-switch-btn {
     flex: 1;
-    border: none;
+    border: 1px solid transparent;
     background: transparent;
     padding: 0.65rem 0.5rem;
-    font-family: 'Times New Roman', Times, serif;
-    font-size: 16px;
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.95rem;
     min-height: 44px;
-    font-weight: 700;
-    color: #555E57;
-    border-radius: 4px;
+    font-weight: 600;
+    color: #625B53;
+    border-radius: 6px;
     cursor: pointer;
-    transition: all 0.15s ease-in-out;
+    transition: all 0.18s ease-in-out;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
+    gap: 8px;
     outline: none;
 }
 
 .role-switch-btn:hover {
-    color: #202820;
-    background-color: #EFECE3;
+    color: #292524;
+    background-color: rgba(255, 255, 255, 0.6);
 }
 
 .role-switch-btn.active {
-    background-color: #0F3D64;
-    color: #FFFFFF;
-    box-shadow: 0 2px 6px rgba(15, 61, 100, 0.28);
+    background: linear-gradient(135deg, #D97736 0%, #C86524 100%) !important;
+    border-color: #B45309 !important;
+    color: #FFFFFF !important;
+    font-weight: 700;
+    box-shadow: 0 3px 10px rgba(217, 119, 54, 0.32);
 }
 
 .role-switch-btn.active .role-icon {
-    color: #C5A15A;
+    color: #FFFFFF !important;
 }
 
 .role-icon {
-    font-size: 1.05rem;
-    color: #626B64;
-    transition: color 0.15s ease-in-out;
+    font-size: 1.1rem;
+    color: #8C6A48;
+    transition: color 0.18s ease-in-out;
 }
 
 /* Field Group & Inputs */
 .login-field-group {
-    margin-bottom: 1.35rem;
+    margin-bottom: 1.25rem;
 }
 
 .login-field-label {
     display: block;
-    font-size: 16.5px;
-    font-weight: 700;
-    color: #202820;
-    margin-bottom: 0.45rem;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #292524;
+    margin-bottom: 0.4rem;
 }
 
 .login-text-input {
     width: 100%;
     padding: 0.75rem 1rem;
-    font-family: inherit;
-    font-size: 16.5px;
-    min-height: 46px;
-    color: #202820;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.98rem;
+    min-height: 48px;
+    color: #292524;
     background-color: #FFFFFF;
-    border: 1px solid #D8D5CC;
-    border-radius: 6px;
-    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    border: 1.5px solid #D8D5CC;
+    border-radius: 8px;
+    transition: border-color 0.18s ease-in-out, box-shadow 0.18s ease-in-out;
 }
 
 .login-text-input:focus {
-    border-color: #0F3D64;
+    border-color: #D97736 !important;
     outline: 0;
-    box-shadow: 0 0 0 3px rgba(15, 61, 100, 0.2);
+    box-shadow: 0 0 0 3.5px rgba(217, 119, 54, 0.20) !important;
 }
 
 .login-text-input::placeholder {
-    color: #707973;
+    color: #8C8479;
     font-style: normal;
     opacity: 1;
 }
@@ -292,25 +305,26 @@
     width: 3rem;
     border: none;
     background: transparent;
-    color: #626B64;
+    color: #625B53;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 1.15rem;
-    transition: color 0.15s ease-in-out;
-    border-radius: 0 6px 6px 0;
+    transition: color 0.18s ease-in-out;
+    border-radius: 0 8px 8px 0;
 }
 
 .password-toggle-trigger:hover,
 .password-toggle-trigger:focus {
-    color: #0F3D64;
+    color: #D97736;
     outline: none;
 }
 
 .field-context-help {
-    font-size: 0.85rem;
-    color: #626B64;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.82rem;
+    color: #625B53;
     margin-top: 0.35rem;
     line-height: 1.35;
 }
@@ -318,26 +332,28 @@
 /* Submit Action Button */
 .btn-portal-submit {
     width: 100%;
-    background: linear-gradient(135deg, #D97736 0%, #C86524 100%);
-    color: #FFFFFF;
-    border: 1px solid #B45309;
-    padding: 0.88rem;
-    font-family: 'Times New Roman', Times, serif;
-    font-size: 1.12rem;
+    background: linear-gradient(135deg, #D97736 0%, #C86524 100%) !important;
+    color: #FFFFFF !important;
+    border: 1px solid #B45309 !important;
+    min-height: 48px;
+    padding: 0.82rem;
+    font-family: 'Poppins', sans-serif;
+    font-size: 1.08rem;
     font-weight: 700;
-    border-radius: 6px;
+    border-radius: 8px;
     cursor: pointer;
-    transition: background-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out, transform 0.1s ease;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
     margin-top: 0.75rem;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
+    box-shadow: 0 4px 14px rgba(217, 119, 54, 0.30);
 }
 
 .btn-portal-submit:hover {
-    background-color: #0B2D4A;
-    box-shadow: 0 4px 14px rgba(15, 61, 100, 0.28);
+    background: linear-gradient(135deg, #C25E20 0%, #A8490B 100%) !important;
+    box-shadow: 0 6px 18px rgba(180, 83, 9, 0.38);
     transform: translateY(-1px);
 }
 
@@ -347,7 +363,7 @@
 
 .btn-portal-submit:focus {
     outline: 0;
-    box-shadow: 0 0 0 3px rgba(15, 61, 100, 0.3);
+    box-shadow: 0 0 0 3.5px rgba(217, 119, 54, 0.32);
 }
 
 /* Clear Error / Validation Area */
@@ -356,12 +372,12 @@
 }
 
 .login-portal-footer {
-    margin-top: 1.75rem;
+    margin-top: 1.6rem;
     text-align: center;
-    font-size: 0.85rem;
-    color: #626B64;
-    border-top: 1px solid #EAE8E0;
-    padding-top: 1rem;
+    font-size: 0.82rem;
+    color: #625B53;
+    border-top: 1px solid #EADCCB;
+    padding-top: 0.95rem;
 }
 
 /* Responsive Stacking */
@@ -369,7 +385,7 @@
     .login-visual-panel {
         padding: 2.5rem 1.75rem;
         border-right: none;
-        border-bottom: 1px solid #D8D5CC;
+        border-bottom: 1px solid #EADCCB;
     }
     .login-access-panel {
         padding: 2.5rem 1.75rem;
@@ -382,32 +398,34 @@
 <div class="login-portal-wrapper">
     <div class="login-split-frame">
         <div class="row g-0">
-            <!-- Left Section: Visual & Public Service Mission -->
+            <!-- Left Section: Visual & Feature Highlights Panel -->
             <div class="col-lg-5 login-visual-panel">
                 <div>
-                    <span class="pds-gov-label">PUBLIC DISTRIBUTION SYSTEM</span>
+                    <span class="pds-gov-label">RationSmart Prototype &bull; PUBLIC DISTRIBUTION SYSTEM</span>
                     
-                    <!-- Tamil Nadu Government Emblem & Grain Motif -->
+                    <!-- Preserved RationSmart Logo & Identity -->
                     <div class="d-flex align-items-center gap-3 mb-3">
-                        <div style="background: #FFFFFF; border: 2.5px solid #E65100; border-radius: 50%; padding: 4px; width: 64px; height: 64px; box-shadow: 0 4px 12px rgba(230,81,0,0.25); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <div style="background: #FFFFFF; border: 2.5px solid #D97736; border-radius: 50%; padding: 4px; width: 62px; height: 62px; box-shadow: 0 4px 12px rgba(217,119,54,0.22); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
                             <img src="{{ url_for('static', filename='img/tn_gov_logo.svg') }}" alt="Tamil Nadu Government Emblem" style="width: 100%; height: 100%; object-fit: contain;">
                         </div>
                         <div>
-                            <span class="badge" style="background-color: #E65100; color: #FFFFFF; font-size: 0.72rem; letter-spacing: 0.05em;">TNePDS &bull; தமிழ்நாடு அரசு</span>
-                            <div class="fw-bold text-dark" style="font-size: 0.88rem; line-height: 1.25;">உணவு பொருள் வழங்கல் மற்றும் நுகர்வோர் பாதுகாப்புத் துறை</div>
+                            <span class="badge" style="background-color: #D97736; color: #FFFFFF; font-size: 0.75rem; letter-spacing: 0.04em; font-weight: 700;">TNePDS &bull; RationSmart</span>
+                            <div class="fw-bold text-dark" style="font-size: 0.92rem; line-height: 1.25; font-family: 'Noto Sans Tamil', sans-serif;">உணவு பொருள் வழங்கல் மற்றும் நுகர்வோர் பாதுகாப்புத் துறை</div>
                         </div>
                     </div>
-                    <div class="mb-3">
-                        <svg class="grain-motif-svg" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                            <circle cx="26" cy="26" r="25" fill="#FFFFFF" stroke="#D8D5CC" stroke-width="1.5"/>
-                            <path d="M26 44V12" stroke="#244A36" stroke-width="2.5" stroke-linecap="round"/>
-                            <path d="M26 12C26 12 29.5 6 26 3C22.5 6 26 12 26 12Z" fill="#C5A15A" stroke="#244A36" stroke-width="1.2"/>
-                            <path d="M26 19C29.5 15 35 16 36 20C33 21 28.5 20 26 19Z" fill="#C5A15A" stroke="#244A36" stroke-width="1.2"/>
-                            <path d="M26 19C22.5 15 17 16 16 20C19 21 23.5 20 26 19Z" fill="#C5A15A" stroke="#244A36" stroke-width="1.2"/>
-                            <path d="M26 27C30.5 23 37 24 38 28C34 30 28.5 28 26 27Z" fill="#C5A15A" stroke="#244A36" stroke-width="1.2"/>
-                            <path d="M26 27C21.5 23 15 24 14 28C18 30 23.5 28 26 27Z" fill="#C5A15A" stroke="#244A36" stroke-width="1.2"/>
-                            <path d="M26 35C30.5 31 37 32 38 36C34 38 28.5 36 26 35Z" fill="#C5A15A" stroke="#244A36" stroke-width="1.2"/>
-                            <path d="M26 35C21.5 31 15 32 14 36C18 38 23.5 36 26 35Z" fill="#C5A15A" stroke="#244A36" stroke-width="1.2"/>
+
+                    <!-- Preserved Grain Motif Brand Icon -->
+                    <div class="mb-2">
+                        <svg class="grain-motif-svg" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width: 48px; height: 48px;">
+                            <circle cx="26" cy="26" r="25" fill="#FFFFFF" stroke="#EADCCB" stroke-width="1.5"/>
+                            <path d="M26 44V12" stroke="#D97736" stroke-width="2.5" stroke-linecap="round"/>
+                            <path d="M26 12C26 12 29.5 6 26 3C22.5 6 26 12 26 12Z" fill="#E9A34A" stroke="#D97736" stroke-width="1.2"/>
+                            <path d="M26 19C29.5 15 35 16 36 20C33 21 28.5 20 26 19Z" fill="#E9A34A" stroke="#D97736" stroke-width="1.2"/>
+                            <path d="M26 19C22.5 15 17 16 16 20C19 21 23.5 20 26 19Z" fill="#E9A34A" stroke="#D97736" stroke-width="1.2"/>
+                            <path d="M26 27C30.5 23 37 24 38 28C34 30 28.5 28 26 27Z" fill="#E9A34A" stroke="#D97736" stroke-width="1.2"/>
+                            <path d="M26 27C21.5 23 15 24 14 28C18 30 23.5 28 26 27Z" fill="#E9A34A" stroke="#D97736" stroke-width="1.2"/>
+                            <path d="M26 35C30.5 31 37 32 38 36C34 38 28.5 36 26 35Z" fill="#E9A34A" stroke="#D97736" stroke-width="1.2"/>
+                            <path d="M26 35C21.5 31 15 32 14 36C18 38 23.5 36 26 35Z" fill="#E9A34A" stroke="#D97736" stroke-width="1.2"/>
                         </svg>
                     </div>
 
@@ -416,43 +434,51 @@
                         Transparent distribution. Reliable records. Better public service.
                     </p>
 
-                    <div class="grain-motif-container">
-                        <i class="bi bi-shield-check text-success fs-3"></i>
-                        <div class="grain-motif-text">
-                            <strong>Official Departmental Portal</strong><br>
-                            Civil Supplies & Essential Commodity Distribution Monitoring
+                    <!-- Four Verified Implemented Feature Highlights -->
+                    <div class="login-feature-highlights">
+                        <div class="feature-highlight-card">
+                            <div class="feature-highlight-icon">
+                                <i class="bi bi-hdd-network-fill"></i>
+                            </div>
+                            <div class="feature-highlight-content">
+                                <strong>Offline-Capable Billing</strong>
+                                <span>IndexedDB resilient sales recording with automatic sync</span>
+                            </div>
                         </div>
-                    </div>
-
-                    <div class="pds-trust-stats">
-                        <div class="pds-stat-chip">
-                            <span class="pds-stat-chip-num">35,000+</span>
-                            <span class="pds-stat-chip-label">FPS Outlets</span>
+                        <div class="feature-highlight-card">
+                            <div class="feature-highlight-icon">
+                                <i class="bi bi-boxes"></i>
+                            </div>
+                            <div class="feature-highlight-content">
+                                <strong>Smart Stock Monitoring</strong>
+                                <span>Real-time shop stock levels and automated threshold alerts</span>
+                            </div>
                         </div>
-                        <div class="pds-stat-chip">
-                            <span class="pds-stat-chip-num">100%</span>
-                            <span class="pds-stat-chip-label">Aadhaar PoS</span>
+                        <div class="feature-highlight-card">
+                            <div class="feature-highlight-icon">
+                                <i class="bi bi-qr-code-scan"></i>
+                            </div>
+                            <div class="feature-highlight-content">
+                                <strong>QR Receipt Verification</strong>
+                                <span>HMAC-SHA256 cryptographic anti-tamper validation</span>
+                            </div>
                         </div>
-                        <div class="pds-stat-chip">
-                            <span class="pds-stat-chip-num">NFSA</span>
-                            <span class="pds-stat-chip-label">Compliant</span>
+                        <div class="feature-highlight-card">
+                            <div class="feature-highlight-icon">
+                                <i class="bi bi-volume-up-fill"></i>
+                            </div>
+                            <div class="feature-highlight-content">
+                                <strong>Tamil Voice Accessibility</strong>
+                                <span>Assistive bilingual Tamil-English speech synthesis</span>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="portal-trust-pillars">
-                    <div class="trust-pillar-item">
-                        <i class="bi bi-patch-check-fill"></i>
-                        <span>Enforcing monthly NFSA & State grain entitlement scales</span>
-                    </div>
-                    <div class="trust-pillar-item">
-                        <i class="bi bi-receipt"></i>
-                        <span>Secure electronic cash-memos and real-time inventory ledger</span>
-                    </div>
-                    <div class="trust-pillar-item">
-                        <i class="bi bi-people-fill"></i>
-                        <span>Direct household verification and multi-shop oversight</span>
-                    </div>
+                <!-- Academic Project Prototype Identity -->
+                <div class="login-prototype-badge">
+                    <i class="bi bi-mortarboard-fill"></i>
+                    <span>RationSmart Academic Project Prototype &bull; Resilient Anti-Diversion PDS Architecture</span>
                 </div>
             </div>
 
@@ -462,7 +488,7 @@
                     <h2 class="access-heading">Welcome Back</h2>
                     <p class="access-subheading">Sign in to access your portal.</p>
 
-                    <!-- Role Switcher: Admin, Dealer, Customer -->
+                    <!-- Role Switcher: Customer, Dealer, Admin -->
                     <div class="role-switch-container" role="tablist" aria-label="Portal Role Selection">
                         <button type="button" 
                                 class="role-switch-btn active" 
@@ -493,18 +519,28 @@
                         </button>
                     </div>
 
-                    <!-- Flash / Error Display Area -->
+                    <!-- Flash / Error Display Area (with automatic deduplication) -->
                     <div class="login-alert-area" id="alertContainer">
                         {% with messages = get_flashed_messages(with_categories=true) %}
                             {% if messages %}
+                                {% set seen_texts = [] %}
                                 {% for category, message in messages %}
-                                    <div class="alert alert-{{ category if category != 'message' else 'info' }} alert-dismissible fade show mb-3" role="alert">
-                                        <div class="d-flex align-items-center">
-                                            <i class="bi bi-exclamation-circle-fill me-2 fs-5"></i>
-                                            <div>{{ message }}</div>
+                                    {% if message not in seen_texts %}
+                                        {% set _ = seen_texts.append(message) %}
+                                        <div class="alert alert-{{ category if category != 'message' else 'info' }} alert-dismissible fade show mb-3" role="alert" style="border-radius: 8px;">
+                                            <div class="d-flex align-items-center">
+                                                {% if category == 'success' %}
+                                                    <i class="bi bi-check-circle-fill me-2 fs-5 text-success"></i>
+                                                {% elif category == 'danger' %}
+                                                    <i class="bi bi-exclamation-triangle-fill me-2 fs-5 text-danger"></i>
+                                                {% else %}
+                                                    <i class="bi bi-info-circle-fill me-2 fs-5 text-primary"></i>
+                                                {% endif %}
+                                                <div class="fw-semibold">{{ message }}</div>
+                                            </div>
+                                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                                         </div>
-                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                                    </div>
+                                    {% endif %}
                                 {% endfor %}
                             {% endif %}
                         {% endwith %}
@@ -566,14 +602,14 @@
                             </div>
                         </div>
 
-                        <!-- Prominent Forest-Green Sign In Button -->
+                        <!-- Prominent Refined Saffron/Orange Sign In Button -->
                         <button type="submit" class="btn-portal-submit" id="submitLoginBtn">
                             <i class="bi bi-box-arrow-in-right"></i> Sign In
                         </button>
                     </form>
 
                     <div class="login-portal-footer">
-                        Digital Ration Shop Management Portal &bull; Department of Civil Supplies
+                        Digital Ration Shop Management Portal &bull; Academic Project Prototype
                     </div>
                 </div>
             </div>
