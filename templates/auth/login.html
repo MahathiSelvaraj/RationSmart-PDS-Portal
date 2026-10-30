@@ -21,7 +21,7 @@
     font-family: 'Inter', var(--pds-font-family), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background-color: transparent;
     color: #292524;
-    padding: 2rem 0 3.5rem 0;
+    padding: 2.5rem 0 3.5rem 0;
     min-height: calc(100vh - 160px);
     display: flex;
     align-items: center;
@@ -34,16 +34,16 @@
     border-radius: 12px;
     box-shadow: 0 12px 36px rgba(41, 37, 36, 0.10);
     overflow: hidden;
-    max-width: 1080px;
+    max-width: 1040px;
     width: 100%;
     margin: 0 auto;
 }
 
-/* --- Left Section (Brand & Feature Highlights Panel) --- */
+/* --- Left Section (Brand & Clean Identity Panel) --- */
 .login-visual-panel {
     background: linear-gradient(135deg, rgba(255, 249, 242, 0.98) 0%, rgba(255, 240, 226, 0.98) 100%);
     border-right: 1px solid #EADCCB;
-    padding: 3rem 2.5rem;
+    padding: 3.5rem 2.75rem;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -68,13 +68,40 @@
     color: #D97736;
     text-transform: uppercase;
     display: inline-block;
-    margin-bottom: 0.85rem;
+    margin-bottom: 1.25rem;
 }
 
-/* Brand Title & Tagline */
+/* Single Authoritative Brand Logo & Department Title */
+.login-brand-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.login-emblem-wrap {
+    background: #FFFFFF;
+    border: 2px solid #D97736;
+    border-radius: 50%;
+    padding: 6px;
+    width: 68px;
+    height: 68px;
+    box-shadow: 0 4px 12px rgba(217,119,54,0.20);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.login-emblem-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
 .portal-main-heading {
     font-family: 'Poppins', sans-serif;
-    font-size: 2.25rem;
+    font-size: 2.35rem;
     font-weight: 800;
     color: #292524;
     line-height: 1.2;
@@ -87,72 +114,48 @@
     color: #625B53;
     font-size: 0.98rem;
     line-height: 1.55;
-    margin-bottom: 1.75rem;
+    margin-bottom: 2rem;
 }
 
-/* Compact Feature Highlight Cards */
-.login-feature-highlights {
+/* Compact, Subtle Feature Highlights List */
+.login-feature-list {
     display: flex;
     flex-direction: column;
-    gap: 0.85rem;
-    margin-bottom: 1.75rem;
+    gap: 0.75rem;
+    margin-bottom: 2rem;
 }
 
-.feature-highlight-card {
+.login-feature-item {
     display: flex;
     align-items: center;
-    gap: 1rem;
-    padding: 0.85rem 1rem;
-    background-color: #FFFFFF;
+    gap: 0.75rem;
+    padding: 0.65rem 0.9rem;
+    background: rgba(255, 255, 255, 0.75);
     border: 1px solid #EADCCB;
-    border-left: 3.5px solid #D97736;
     border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(41, 37, 36, 0.04);
-    transition: transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-}
-
-.feature-highlight-card:hover {
-    transform: translateX(3px);
-    box-shadow: 0 4px 12px rgba(217, 119, 54, 0.12);
-}
-
-.feature-highlight-icon {
-    width: 40px;
-    height: 40px;
-    min-width: 40px;
-    background-color: #FFF0E2;
-    color: #D97736;
-    border: 1px solid #FCE4CC;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.2rem;
-}
-
-.feature-highlight-content {
-    display: flex;
-    flex-direction: column;
-}
-
-.feature-highlight-content strong {
-    font-family: 'Poppins', sans-serif;
-    font-size: 0.92rem;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.88rem;
     font-weight: 600;
     color: #292524;
-    line-height: 1.3;
+    transition: transform 0.15s ease, background 0.15s ease;
 }
 
-.feature-highlight-content span {
-    font-size: 0.82rem;
-    color: #625B53;
-    line-height: 1.35;
+.login-feature-item:hover {
+    background: #FFFFFF;
+    transform: translateX(3px);
+    box-shadow: 0 2px 8px rgba(217, 119, 54, 0.10);
+}
+
+.login-feature-item i {
+    font-size: 1.15rem;
+    color: #D97736;
+    flex-shrink: 0;
 }
 
 /* Left Panel Footer Notice */
 .login-prototype-badge {
     border-top: 1px solid #EADCCB;
-    padding-top: 1rem;
+    padding-top: 1.15rem;
     margin-top: auto;
     display: flex;
     align-items: center;
@@ -171,7 +174,7 @@
 /* --- Right Section (Access Panel & Role Form) --- */
 .login-access-panel {
     background-color: #FFFFFF;
-    padding: 3.25rem 3rem;
+    padding: 3.5rem 3rem;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -179,7 +182,7 @@
 
 .access-heading {
     font-family: 'Poppins', sans-serif;
-    font-size: 1.95rem;
+    font-size: 2rem;
     font-weight: 700;
     color: #292524;
     margin-bottom: 0.25rem;
@@ -190,7 +193,7 @@
     font-family: 'Inter', sans-serif;
     font-size: 0.95rem;
     color: #625B53;
-    margin-bottom: 1.6rem;
+    margin-bottom: 1.65rem;
 }
 
 /* Role Selector Tabs */
@@ -200,7 +203,7 @@
     border: 1px solid #EADCCB;
     border-radius: 8px;
     padding: 4px;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.65rem;
     gap: 4px;
 }
 
@@ -249,7 +252,7 @@
 
 /* Field Group & Inputs */
 .login-field-group {
-    margin-bottom: 1.25rem;
+    margin-bottom: 1.35rem;
 }
 
 .login-field-label {
@@ -398,35 +401,20 @@
 <div class="login-portal-wrapper">
     <div class="login-split-frame">
         <div class="row g-0">
-            <!-- Left Section: Visual & Feature Highlights Panel -->
+            <!-- Left Section: Clean Identity & Features -->
             <div class="col-lg-5 login-visual-panel">
                 <div>
-                    <span class="pds-gov-label">RationSmart Prototype &bull; PUBLIC DISTRIBUTION SYSTEM</span>
+                    <span class="pds-gov-label">RationSmart &bull; PUBLIC DISTRIBUTION SYSTEM</span>
                     
-                    <!-- Preserved RationSmart Logo & Identity -->
-                    <div class="d-flex align-items-center gap-3 mb-3">
-                        <div style="background: #FFFFFF; border: 2.5px solid #D97736; border-radius: 50%; padding: 4px; width: 62px; height: 62px; box-shadow: 0 4px 12px rgba(217,119,54,0.22); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                            <img src="{{ url_for('static', filename='img/tn_gov_logo.svg') }}" alt="Tamil Nadu Government Emblem" style="width: 100%; height: 100%; object-fit: contain;">
+                    <!-- Single Authoritative Brand Logo -->
+                    <div class="login-brand-header">
+                        <div class="login-emblem-wrap">
+                            <img src="{{ url_for('static', filename='img/tn_gov_logo.svg') }}" alt="Tamil Nadu Government Emblem">
                         </div>
                         <div>
                             <span class="badge" style="background-color: #D97736; color: #FFFFFF; font-size: 0.75rem; letter-spacing: 0.04em; font-weight: 700;">TNePDS &bull; RationSmart</span>
-                            <div class="fw-bold text-dark" style="font-size: 0.92rem; line-height: 1.25; font-family: 'Noto Sans Tamil', sans-serif;">உணவு பொருள் வழங்கல் மற்றும் நுகர்வோர் பாதுகாப்புத் துறை</div>
+                            <div class="fw-bold text-dark mt-1" style="font-size: 0.92rem; line-height: 1.3; font-family: 'Noto Sans Tamil', sans-serif;">உணவு பொருள் வழங்கல் மற்றும் நுகர்வோர் பாதுகாப்புத் துறை</div>
                         </div>
-                    </div>
-
-                    <!-- Preserved Grain Motif Brand Icon -->
-                    <div class="mb-2">
-                        <svg class="grain-motif-svg" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width: 48px; height: 48px;">
-                            <circle cx="26" cy="26" r="25" fill="#FFFFFF" stroke="#EADCCB" stroke-width="1.5"/>
-                            <path d="M26 44V12" stroke="#D97736" stroke-width="2.5" stroke-linecap="round"/>
-                            <path d="M26 12C26 12 29.5 6 26 3C22.5 6 26 12 26 12Z" fill="#E9A34A" stroke="#D97736" stroke-width="1.2"/>
-                            <path d="M26 19C29.5 15 35 16 36 20C33 21 28.5 20 26 19Z" fill="#E9A34A" stroke="#D97736" stroke-width="1.2"/>
-                            <path d="M26 19C22.5 15 17 16 16 20C19 21 23.5 20 26 19Z" fill="#E9A34A" stroke="#D97736" stroke-width="1.2"/>
-                            <path d="M26 27C30.5 23 37 24 38 28C34 30 28.5 28 26 27Z" fill="#E9A34A" stroke="#D97736" stroke-width="1.2"/>
-                            <path d="M26 27C21.5 23 15 24 14 28C18 30 23.5 28 26 27Z" fill="#E9A34A" stroke="#D97736" stroke-width="1.2"/>
-                            <path d="M26 35C30.5 31 37 32 38 36C34 38 28.5 36 26 35Z" fill="#E9A34A" stroke="#D97736" stroke-width="1.2"/>
-                            <path d="M26 35C21.5 31 15 32 14 36C18 38 23.5 36 26 35Z" fill="#E9A34A" stroke="#D97736" stroke-width="1.2"/>
-                        </svg>
                     </div>
 
                     <h1 class="portal-main-heading">Digital Ration Shop</h1>
@@ -434,43 +422,23 @@
                         Transparent distribution. Reliable records. Better public service.
                     </p>
 
-                    <!-- Four Verified Implemented Feature Highlights -->
-                    <div class="login-feature-highlights">
-                        <div class="feature-highlight-card">
-                            <div class="feature-highlight-icon">
-                                <i class="bi bi-hdd-network-fill"></i>
-                            </div>
-                            <div class="feature-highlight-content">
-                                <strong>Offline-Capable Billing</strong>
-                                <span>IndexedDB resilient sales recording with automatic sync</span>
-                            </div>
+                    <!-- Compact, Elegant Feature Checklist -->
+                    <div class="login-feature-list">
+                        <div class="login-feature-item">
+                            <i class="bi bi-wifi-off"></i>
+                            <span>Offline-Capable Billing & Sync</span>
                         </div>
-                        <div class="feature-highlight-card">
-                            <div class="feature-highlight-icon">
-                                <i class="bi bi-boxes"></i>
-                            </div>
-                            <div class="feature-highlight-content">
-                                <strong>Smart Stock Monitoring</strong>
-                                <span>Real-time shop stock levels and automated threshold alerts</span>
-                            </div>
+                        <div class="login-feature-item">
+                            <i class="bi bi-boxes"></i>
+                            <span>Smart Stock Monitoring & Alerts</span>
                         </div>
-                        <div class="feature-highlight-card">
-                            <div class="feature-highlight-icon">
-                                <i class="bi bi-qr-code-scan"></i>
-                            </div>
-                            <div class="feature-highlight-content">
-                                <strong>QR Receipt Verification</strong>
-                                <span>HMAC-SHA256 cryptographic anti-tamper validation</span>
-                            </div>
+                        <div class="login-feature-item">
+                            <i class="bi bi-qr-code-scan"></i>
+                            <span>HMAC-SHA256 QR Verification</span>
                         </div>
-                        <div class="feature-highlight-card">
-                            <div class="feature-highlight-icon">
-                                <i class="bi bi-volume-up-fill"></i>
-                            </div>
-                            <div class="feature-highlight-content">
-                                <strong>Tamil Voice Accessibility</strong>
-                                <span>Assistive bilingual Tamil-English speech synthesis</span>
-                            </div>
+                        <div class="login-feature-item">
+                            <i class="bi bi-volume-up"></i>
+                            <span>Tamil Voice Accessibility</span>
                         </div>
                     </div>
                 </div>
@@ -478,7 +446,7 @@
                 <!-- Academic Project Prototype Identity -->
                 <div class="login-prototype-badge">
                     <i class="bi bi-mortarboard-fill"></i>
-                    <span>RationSmart Academic Project Prototype &bull; Resilient Anti-Diversion PDS Architecture</span>
+                    <span>RationSmart Academic Project Prototype &bull; Resilient Anti-Diversion Architecture</span>
                 </div>
             </div>
 
@@ -519,7 +487,7 @@
                         </button>
                     </div>
 
-                    <!-- Flash / Error Display Area (with automatic deduplication) -->
+                    <!-- Flash / Error Display Area (with deduplication) -->
                     <div class="login-alert-area" id="alertContainer">
                         {% with messages = get_flashed_messages(with_categories=true) %}
                             {% if messages %}
