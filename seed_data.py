@@ -38,6 +38,43 @@ def seed_database(app=None):
                     db.session.commit()
                     print("Added missing dealer4 account for FPS-104.")
             
+            # Ensure additional demo customers exist for live review / billing demo
+            fresh_review_cards = [
+                {'card_number': 'RC-AAY-1005', 'card_type': 'AAY', 'head_of_family': 'Murugan K', 'family_members_count': 4, 'aadhaar_last4': '5512', 'mobile': '9894100001', 'address': 'No 5, Kamaraj Nagar, Anna Nagar', 'shop_code': 'FPS-101'},
+                {'card_number': 'RC-PHH-2007', 'card_type': 'PHH', 'head_of_family': 'Selvi Ramesh', 'family_members_count': 4, 'aadhaar_last4': '3381', 'mobile': '9894100002', 'address': 'No 18, Bharathiyar St, Anna Nagar', 'shop_code': 'FPS-101'},
+                {'card_number': 'RC-PHH-2008', 'card_type': 'PHH', 'head_of_family': 'Arunachalam V', 'family_members_count': 3, 'aadhaar_last4': '7744', 'mobile': '9894100003', 'address': 'Plot 42, Cross Road, Anna Nagar', 'shop_code': 'FPS-101'},
+                {'card_number': 'RC-PHH-2009', 'card_type': 'PHH', 'head_of_family': 'Fathima Banu', 'family_members_count': 5, 'aadhaar_last4': '6618', 'mobile': '9894100004', 'address': 'No 9, Mosque St, Anna Nagar', 'shop_code': 'FPS-101'},
+                {'card_number': 'RC-NPHH-3004', 'card_type': 'NPHH', 'head_of_family': 'Venkatesh S', 'family_members_count': 3, 'aadhaar_last4': '4491', 'mobile': '9894100005', 'address': 'Flat 3A, Green Park, Anna Nagar', 'shop_code': 'FPS-101'},
+                {'card_number': 'RC-NPHH-3005', 'card_type': 'NPHH', 'head_of_family': 'Karpagam Sundar', 'family_members_count': 4, 'aadhaar_last4': '8820', 'mobile': '9894100006', 'address': 'No 21, New Colony, Anna Nagar', 'shop_code': 'FPS-101'},
+                {'card_number': 'RC-AY-4002', 'card_type': 'AY', 'head_of_family': 'Palaniammal (Elderly)', 'family_members_count': 1, 'aadhaar_last4': '2299', 'mobile': '9894100007', 'address': 'Govt Old Age Home, Anna Nagar', 'shop_code': 'FPS-101'},
+                {'card_number': 'RC-AAY-1006', 'card_type': 'AAY', 'head_of_family': 'Muthukumar P', 'family_members_count': 4, 'aadhaar_last4': '1108', 'mobile': '9894100008', 'address': 'No 14, Slum Board, Anna Nagar', 'shop_code': 'FPS-101'},
+            ]
+            shop1 = FairPriceShop.query.filter_by(shop_code='FPS-101').first()
+            if shop1:
+                for c_data in fresh_review_cards:
+                    if not RationCard.query.filter_by(card_number=c_data['card_number']).first():
+                        new_rc = RationCard(
+                            card_number=c_data['card_number'],
+                            card_type=c_data['card_type'],
+                            head_of_family=c_data['head_of_family'],
+                            family_members_count=c_data['family_members_count'],
+                            aadhaar_last4=c_data['aadhaar_last4'],
+                            mobile=c_data['mobile'],
+                            address=c_data['address'],
+                            assigned_shop_id=shop1.id
+                        )
+                        db.session.add(new_rc)
+                        db.session.flush()
+                        fm = FamilyMember(
+                            ration_card_id=new_rc.id,
+                            full_name=new_rc.head_of_family,
+                            relationship='Self (Head)',
+                            age=45,
+                            gender='Male' if 'Elderly' not in new_rc.head_of_family and 'Selvi' not in new_rc.head_of_family and 'Fathima' not in new_rc.head_of_family and 'Karpagam' not in new_rc.head_of_family else 'Female',
+                            aadhaar_last4=new_rc.aadhaar_last4
+                        )
+                        db.session.add(fm)
+
             # Ensure every Ration Card has a citizen user account
             for rc in RationCard.query.all():
                 u = User.query.filter_by(ration_card_id=rc.id, role='citizen').first()
