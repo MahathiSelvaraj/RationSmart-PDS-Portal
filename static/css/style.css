@@ -72,6 +72,13 @@ html {
 }
 
 body {
+    background-color: var(--pds-bg) !important;
+    background-image: linear-gradient(135deg, rgba(245,250,245,0.3) 25%, transparent 25%),
+                      linear-gradient(225deg, rgba(245,250,245,0.3) 25%, transparent 25%),
+                      linear-gradient(45deg, rgba(245,250,245,0.3) 25%, transparent 25%),
+                      linear-gradient(315deg, rgba(245,250,245,0.3) 25%, transparent 25%);
+    background-size: 20px 20px;
+    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
   font-family: var(--pds-font-family) !important;
   background-color: var(--pds-bg) !important;
   color: var(--pds-text-main) !important;
@@ -83,6 +90,22 @@ body {
   margin: 0;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Shared background classes */
+.page-bg {
+    background-color: var(--pds-bg) !important;
+    background-image: linear-gradient(135deg, rgba(245,250,245,0.3) 25%, transparent 25%),
+                      linear-gradient(225deg, rgba(245,250,245,0.3) 25%, transparent 25%),
+                      linear-gradient(45deg, rgba(245,250,245,0.3) 25%, transparent 25%),
+                      linear-gradient(315deg, rgba(245,250,245,0.3) 25%, transparent 25%);
+    background-size: 20px 20px;
+    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+}
+
+.section-bg {
+    background-color: var(--pds-surface-alt) !important;
+    /* subtle pale sage green */
 }
 
 /* Apply Times New Roman across all interactive and structural components */
@@ -954,6 +977,13 @@ code {
 }
 
 .card-body {
+    background-color: var(--pds-bg) !important;
+    background-image: linear-gradient(135deg, rgba(245,250,245,0.3) 25%, transparent 25%),
+                      linear-gradient(225deg, rgba(245,250,245,0.3) 25%, transparent 25%),
+                      linear-gradient(45deg, rgba(245,250,245,0.3) 25%, transparent 25%),
+                      linear-gradient(315deg, rgba(245,250,245,0.3) 25%, transparent 25%);
+    background-size: 20px 20px;
+    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
   padding: 1.35rem;
   font-family: var(--pds-font-family);
 }
@@ -1165,6 +1195,13 @@ small,
 }
 
 .modal-body {
+    background-color: var(--pds-bg) !important;
+    background-image: linear-gradient(135deg, rgba(245,250,245,0.3) 25%, transparent 25%),
+                      linear-gradient(225deg, rgba(245,250,245,0.3) 25%, transparent 25%),
+                      linear-gradient(45deg, rgba(245,250,245,0.3) 25%, transparent 25%),
+                      linear-gradient(315deg, rgba(245,250,245,0.3) 25%, transparent 25%);
+    background-size: 20px 20px;
+    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
   padding: 1.6rem;
   font-size: 16px;
   color: var(--pds-text-main);
