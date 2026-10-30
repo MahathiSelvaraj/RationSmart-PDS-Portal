@@ -73,14 +73,15 @@ html {
 
 body {
   font-family: var(--pds-font-family) !important;
-  background-color: #F4F6F9 !important;
+  background-color: #FFF9F2 !important;
   background-image: 
-    radial-gradient(circle at 50% 0%, rgba(15, 60, 100, 0.035) 0%, transparent 75%),
-    linear-gradient(to right, rgba(148, 163, 184, 0.15) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(148, 163, 184, 0.15) 1px, transparent 1px) !important;
-  background-size: 100% 100%, 36px 36px, 36px 36px !important;
-  background-position: 0 0, 0 0, 0 0 !important;
-  color: var(--pds-text-main) !important;
+    linear-gradient(rgba(255, 249, 242, 0.22), rgba(255, 249, 242, 0.32)),
+    url('/static/images/paddy-field-background.png') !important;
+  background-size: cover !important;
+  background-position: center 25% !important;
+  background-attachment: fixed !important;
+  background-repeat: no-repeat !important;
+  color: #292524 !important;
   font-size: var(--pds-body);
   line-height: 1.55;
   min-height: 100vh;
@@ -93,18 +94,26 @@ body {
 
 /* Shared background classes */
 .page-bg {
-  background-color: #F4F6F9 !important;
+  background-color: #FFF9F2 !important;
   background-image: 
-    radial-gradient(circle at 50% 0%, rgba(15, 60, 100, 0.035) 0%, transparent 75%),
-    linear-gradient(to right, rgba(148, 163, 184, 0.15) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(148, 163, 184, 0.15) 1px, transparent 1px) !important;
-  background-size: 100% 100%, 36px 36px, 36px 36px !important;
-  background-position: 0 0, 0 0, 0 0 !important;
+    linear-gradient(rgba(255, 249, 242, 0.22), rgba(255, 249, 242, 0.32)),
+    url('/static/images/paddy-field-background.png') !important;
+  background-size: cover !important;
+  background-position: center 25% !important;
+  background-attachment: fixed !important;
+  background-repeat: no-repeat !important;
 }
 
 .section-bg {
-  background-color: #F8FAFC !important;
+  background-color: #FFF0E2 !important;
   background-image: none !important;
+}
+
+@media (max-width: 768px) {
+  body, .page-bg {
+    background-position: 65% center !important;
+    background-attachment: scroll !important;
+  }
 }
 
 /* Apply Times New Roman across all interactive and structural components */
@@ -505,13 +514,13 @@ input[type="radio"] {
 
 /* Top National Identity Ribbon */
 .gov-topbar {
-  background: linear-gradient(90deg, #E65100 0%, #EA580C 50%, #C2410C 100%) !important;
+  background: linear-gradient(90deg, #D97736 0%, #E9A34A 100%) !important;
   color: #FFFFFF !important;
   font-size: 0.88rem;
   padding: 6px 0;
-  border-bottom: 2.5px solid #FFD54F !important;
+  border-bottom: 2px solid #FCE4CC !important;
   letter-spacing: 0.02em;
-  box-shadow: 0 2px 8px rgba(230, 81, 0, 0.22);
+  box-shadow: 0 2px 8px rgba(217, 119, 54, 0.2);
 }
 
 .gov-topbar a {
@@ -526,8 +535,10 @@ input[type="radio"] {
 
 /* Main Brand Header - Stacking context above sticky navbar */
 .pds-brand-header {
-  background: linear-gradient(180deg, #FFFFFF 0%, #FFF9F5 100%) !important;
-  border-bottom: 2px solid #FFCC80 !important;
+  background: rgba(255, 255, 255, 0.94) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-bottom: 1.5px solid #EADCCB !important;
   padding: 0.85rem 0;
   position: relative;
   z-index: 1030;
@@ -623,12 +634,12 @@ input[type="radio"] {
   -webkit-backdrop-filter: blur(8px);
 }
 
-/* Centered, official Tamil Nadu Government Saffron/Orange Navigation Bar */
+/* Centered, refined soft government saffron/orange navigation bar */
 .pds-nav-box-container {
-  background: linear-gradient(135deg, #E65100 0%, #D84315 50%, #BF360C 100%) !important;
-  border: 2px solid #FFA726 !important;
+  background: linear-gradient(135deg, #D97736 0%, #C86524 100%) !important;
+  border: 1.5px solid #FCE4CC !important;
   border-radius: 12px;
-  box-shadow: 0 6px 24px rgba(216, 67, 21, 0.35), 0 2px 6px rgba(0, 0, 0, 0.12) !important;
+  box-shadow: 0 4px 18px rgba(217, 119, 54, 0.25), 0 1px 3px rgba(0, 0, 0, 0.08) !important;
   padding: 7px 12px;
   display: flex;
   align-items: center;
@@ -639,7 +650,7 @@ input[type="radio"] {
 }
 
 .pds-nav-box-container:hover {
-  box-shadow: 0 8px 28px rgba(216, 67, 21, 0.45), 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+  box-shadow: 0 6px 22px rgba(217, 119, 54, 0.32), 0 1px 3px rgba(0, 0, 0, 0.08) !important;
 }
 
 /* Navigation flex row holding the items */
@@ -710,20 +721,20 @@ input[type="radio"] {
   color: #FFFFFF !important;
 }
 
-/* Active Menu Item: Crisp Solid White Pill with Deep Saffron/Orange Text */
+/* Active Menu Item: Crisp Solid White Pill with Refined Orange Text */
 .pds-box-nav .nav-link.active,
 .navbar-custom .nav-link.active {
   background: #FFFFFF !important;
-  border: 1.5px solid #FFE082 !important;
-  border-bottom: 3.5px solid #BF360C !important;
-  color: #BF360C !important;
+  border: 1.5px solid #FCE4CC !important;
+  border-bottom: 3.5px solid #D97736 !important;
+  color: #B45309 !important;
   font-weight: 800 !important;
-  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.25) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
 }
 
 .pds-box-nav .nav-link.active i,
 .navbar-custom .nav-link.active i {
-  color: #E65100 !important;
+  color: #D97736 !important;
   font-weight: 800 !important;
 }
 
@@ -906,9 +917,9 @@ input[type="radio"] {
 thead th {
   font-size: var(--pds-table) !important;
   font-weight: 700 !important;
-  color: var(--pds-text-main) !important;
-  background-color: var(--pds-surface-alt) !important;
-  border-bottom: 2px solid var(--pds-border) !important;
+  color: #292524 !important;
+  background-color: #FFF0E2 !important;
+  border-bottom: 2px solid #EADCCB !important;
   padding: 0.85rem 1rem !important;
   vertical-align: middle;
   letter-spacing: 0.02em;
@@ -962,23 +973,23 @@ code {
 
 .card-pds,
 .card {
-  background-color: var(--pds-surface);
-  border: 1px solid var(--pds-card-border);
+  background-color: #FFFFFF !important;
+  border: 1px solid #EADCCB !important;
   border-radius: 8px;
-  box-shadow: var(--pds-shadow-sm);
+  box-shadow: 0 2px 14px rgba(41, 37, 36, 0.06), 0 1px 3px rgba(41, 37, 36, 0.04) !important;
   transition: box-shadow 0.2s ease, border-color 0.2s ease;
   overflow: hidden;
 }
 
 .card-header-pds,
 .card-header {
-  background-color: var(--pds-surface-alt);
-  border-bottom: 1px solid var(--pds-card-border);
+  background-color: #FFF0E2 !important;
+  border-bottom: 1px solid #EADCCB !important;
   padding: 0.95rem 1.35rem;
   font-family: var(--pds-font-family);
   font-weight: 700;
   font-size: var(--pds-h4);
-  color: var(--pds-primary);
+  color: #292524 !important;
 }
 
 .card-body {
