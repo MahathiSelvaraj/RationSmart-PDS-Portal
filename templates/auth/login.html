@@ -43,7 +43,7 @@
 .login-visual-panel {
     background: linear-gradient(135deg, rgba(255, 249, 242, 0.98) 0%, rgba(255, 240, 226, 0.98) 100%);
     border-right: 1px solid #EADCCB;
-    padding: 3.5rem 2.75rem;
+    padding: 3rem 2.5rem;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -76,7 +76,7 @@
     display: flex;
     align-items: center;
     gap: 1rem;
-    margin-bottom: 2rem;
+    margin-bottom: 1.75rem;
 }
 
 .login-emblem-wrap {
@@ -101,80 +101,124 @@
 
 .portal-main-heading {
     font-family: 'Poppins', sans-serif;
-    font-size: 2.35rem;
+    font-size: 2.25rem;
     font-weight: 800;
     color: #292524;
     line-height: 1.2;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.4rem;
     letter-spacing: -0.02em;
 }
 
 .portal-tagline {
     font-family: 'Inter', sans-serif;
     color: #625B53;
-    font-size: 0.98rem;
-    line-height: 1.55;
-    margin-bottom: 2rem;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    margin-bottom: 1.5rem;
 }
 
-/* Compact, Subtle Feature Highlights List */
-.login-feature-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    margin-bottom: 2rem;
+/* Unified Platform Capabilities Card */
+.login-capabilities-card {
+    background-color: #FFFFFF;
+    border: 1px solid #EADCCB;
+    border-left: 4px solid #D97736;
+    border-radius: 8px;
+    padding: 1.15rem 1.25rem;
+    margin-bottom: 1.25rem;
+    box-shadow: 0 2px 8px rgba(41, 37, 36, 0.04);
 }
 
-.login-feature-item {
+.capabilities-header {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    padding: 0.65rem 0.9rem;
-    background: rgba(255, 255, 255, 0.75);
+    gap: 0.5rem;
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: #292524;
+    margin-bottom: 0.85rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #F4EBE1;
+}
+
+.capabilities-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.65rem 1rem;
+}
+
+.capability-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.45rem;
+    font-size: 0.82rem;
+    color: #44403C;
+    line-height: 1.35;
+}
+
+.capability-item i {
+    color: #D97736;
+    font-size: 0.95rem;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+/* Public Helpline & Timings Card */
+.login-helpline-box {
+    background-color: rgba(255, 255, 255, 0.7);
     border: 1px solid #EADCCB;
     border-radius: 8px;
-    font-family: 'Inter', sans-serif;
-    font-size: 0.88rem;
-    font-weight: 600;
+    padding: 0.85rem 1.1rem;
+    margin-bottom: 1.5rem;
+}
+
+.helpline-title {
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.84rem;
+    font-weight: 700;
     color: #292524;
-    transition: transform 0.15s ease, background 0.15s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin-bottom: 0.35rem;
 }
 
-.login-feature-item:hover {
-    background: #FFFFFF;
-    transform: translateX(3px);
-    box-shadow: 0 2px 8px rgba(217, 119, 54, 0.10);
+.helpline-details {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8rem;
+    color: #625B53;
 }
 
-.login-feature-item i {
-    font-size: 1.15rem;
-    color: #D97736;
-    flex-shrink: 0;
+.helpline-details strong {
+    color: #292524;
+    font-family: 'Inter', sans-serif;
 }
 
 /* Left Panel Footer Notice */
 .login-prototype-badge {
     border-top: 1px solid #EADCCB;
-    padding-top: 1.15rem;
+    padding-top: 1rem;
     margin-top: auto;
     display: flex;
     align-items: center;
     gap: 0.65rem;
-    font-size: 0.82rem;
+    font-size: 0.8rem;
     color: #625B53;
     line-height: 1.4;
 }
 
 .login-prototype-badge i {
     color: #D97736;
-    font-size: 1.15rem;
+    font-size: 1.1rem;
     flex-shrink: 0;
 }
 
 /* --- Right Section (Access Panel & Role Form) --- */
 .login-access-panel {
     background-color: #FFFFFF;
-    padding: 3.5rem 3rem;
+    padding: 3.25rem 2.85rem;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -182,7 +226,7 @@
 
 .access-heading {
     font-family: 'Poppins', sans-serif;
-    font-size: 2rem;
+    font-size: 1.95rem;
     font-weight: 700;
     color: #292524;
     margin-bottom: 0.25rem;
@@ -193,7 +237,7 @@
     font-family: 'Inter', sans-serif;
     font-size: 0.95rem;
     color: #625B53;
-    margin-bottom: 1.65rem;
+    margin-bottom: 1.5rem;
 }
 
 /* Role Selector Tabs */
@@ -203,7 +247,7 @@
     border: 1px solid #EADCCB;
     border-radius: 8px;
     padding: 4px;
-    margin-bottom: 1.65rem;
+    margin-bottom: 1.5rem;
     gap: 4px;
 }
 
@@ -252,7 +296,7 @@
 
 /* Field Group & Inputs */
 .login-field-group {
-    margin-bottom: 1.35rem;
+    margin-bottom: 1.3rem;
 }
 
 .login-field-label {
@@ -393,6 +437,9 @@
     .login-access-panel {
         padding: 2.5rem 1.75rem;
     }
+    .capabilities-grid {
+        grid-template-columns: 1fr;
+    }
 }
 </style>
 {% endblock %}
@@ -422,23 +469,41 @@
                         Transparent distribution. Reliable records. Better public service.
                     </p>
 
-                    <!-- Compact, Elegant Feature Checklist -->
-                    <div class="login-feature-list">
-                        <div class="login-feature-item">
-                            <i class="bi bi-wifi-off"></i>
-                            <span>Offline-Capable Billing & Sync</span>
+                    <!-- Integrated System Capabilities Card -->
+                    <div class="login-capabilities-card">
+                        <div class="capabilities-header">
+                            <i class="bi bi-shield-check text-primary"></i>
+                            <span>PDS Digital Automation Scope</span>
                         </div>
-                        <div class="login-feature-item">
-                            <i class="bi bi-boxes"></i>
-                            <span>Smart Stock Monitoring & Alerts</span>
+                        <div class="capabilities-grid">
+                            <div class="capability-item">
+                                <i class="bi bi-check2-circle"></i>
+                                <span>Offline-capable sale recording & auto-sync</span>
+                            </div>
+                            <div class="capability-item">
+                                <i class="bi bi-check2-circle"></i>
+                                <span>Real-time stock balance & threshold alerts</span>
+                            </div>
+                            <div class="capability-item">
+                                <i class="bi bi-check2-circle"></i>
+                                <span>Cryptographic HMAC-SHA256 receipt verification</span>
+                            </div>
+                            <div class="capability-item">
+                                <i class="bi bi-check2-circle"></i>
+                                <span>Bilingual Tamil-English voice accessibility</span>
+                            </div>
                         </div>
-                        <div class="login-feature-item">
-                            <i class="bi bi-qr-code-scan"></i>
-                            <span>HMAC-SHA256 QR Verification</span>
+                    </div>
+
+                    <!-- Citizen Helpline & Timings Card -->
+                    <div class="login-helpline-box">
+                        <div class="helpline-title">
+                            <i class="bi bi-headset text-primary"></i>
+                            <span>PDS Citizen Consumer Helpline</span>
                         </div>
-                        <div class="login-feature-item">
-                            <i class="bi bi-volume-up"></i>
-                            <span>Tamil Voice Accessibility</span>
+                        <div class="helpline-details">
+                            <span>Toll-Free: <strong>1967</strong> / <strong>1800-425-5901</strong></span>
+                            <span>Mon &ndash; Sat (8:30 AM &ndash; 7:00 PM)</span>
                         </div>
                     </div>
                 </div>
