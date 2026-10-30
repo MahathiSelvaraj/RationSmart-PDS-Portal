@@ -42,35 +42,49 @@
 
             <!-- Quick Access Navigation Panel -->
             <div class="col-lg-5">
-                <div class="card bg-white border p-4 shadow-sm" style="border-top: 3px solid var(--pds-primary) !important;">
+                <div class="card bg-white border p-4 shadow-sm" style="border-top: 4px solid #D97736 !important; border-radius: 8px;">
                     <div class="d-flex align-items-center gap-2 mb-3">
-                        <i class="bi bi-shield-lock-fill text-warning fs-4"></i>
-                        <h5 class="fw-bold mb-0 text-primary">Role-Based Access</h5>
+                        <i class="bi bi-shield-lock-fill fs-4" style="color: #D97736;"></i>
+                        <h5 class="fw-bold mb-0 text-dark">Role-Based Access</h5>
                     </div>
                     <p class="small text-muted mb-3">
-                        Authorized civil supplies personnel, licensed fair price dealers, and enrolled citizens can access their designated workspaces below:
+                        Enrolled citizens, licensed fair price dealers, and civil supplies administration can access their designated workspaces below:
                     </p>
-                    <div class="d-grid gap-2">
-                        <a href="{{ url_for('dealer_pos') }}" class="btn btn-outline-primary text-start p-3 d-flex align-items-center gap-3">
-                            <i class="bi bi-cart-check-fill fs-3 text-primary"></i>
-                            <div>
-                                <strong class="d-block text-dark">Fair Price Dealer Counter</strong>
-                                <small class="text-muted">Dispense monthly grain quota & generate e-receipts</small>
+                    <div class="d-grid gap-3">
+                        <!-- 1. Citizen Portal -->
+                        <a href="{{ url_for('citizen_dashboard') }}" class="role-access-card text-decoration-none">
+                            <div class="role-access-icon">
+                                <i class="bi bi-person-badge-fill"></i>
                             </div>
-                        </a>
-                        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary text-start p-3 d-flex align-items-center gap-3">
-                            <i class="bi bi-speedometer2 fs-3 text-primary"></i>
-                            <div>
-                                <strong class="d-block text-dark">Civil Supplies Administration</strong>
-                                <small class="text-muted">District oversight, inventory matrix & audit logs</small>
-                            </div>
-                        </a>
-                        <a href="{{ url_for('citizen_dashboard') }}" class="btn btn-outline-success text-start p-3 d-flex align-items-center gap-3">
-                            <i class="bi bi-person-badge-fill fs-3 text-success"></i>
-                            <div>
-                                <strong class="d-block text-dark">Citizen Self-Service Portal</strong>
+                            <div class="flex-grow-1">
+                                <strong class="d-block text-dark fw-bold">Citizen Self-Service Portal</strong>
                                 <small class="text-muted">Check remaining entitlement balance & history</small>
                             </div>
+                            <i class="bi bi-chevron-right text-muted role-access-chevron"></i>
+                        </a>
+
+                        <!-- 2. Fair Price Dealer Counter -->
+                        <a href="{{ url_for('dealer_pos') }}" class="role-access-card text-decoration-none">
+                            <div class="role-access-icon">
+                                <i class="bi bi-cart-check-fill"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <strong class="d-block text-dark fw-bold">Fair Price Dealer Counter</strong>
+                                <small class="text-muted">Dispense monthly grain quota & generate e-receipts</small>
+                            </div>
+                            <i class="bi bi-chevron-right text-muted role-access-chevron"></i>
+                        </a>
+
+                        <!-- 3. Civil Supplies Administration -->
+                        <a href="{{ url_for('admin_dashboard') }}" class="role-access-card text-decoration-none">
+                            <div class="role-access-icon">
+                                <i class="bi bi-shield-check"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <strong class="d-block text-dark fw-bold">Civil Supplies Administration</strong>
+                                <small class="text-muted">District oversight, inventory matrix & audit logs</small>
+                            </div>
+                            <i class="bi bi-chevron-right text-muted role-access-chevron"></i>
                         </a>
                     </div>
                 </div>

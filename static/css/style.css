@@ -1783,3 +1783,57 @@ footer.gov-footer a:hover {
 }
 
 
+
+
+/* Unified Role-Based Access Cards on Public Homepage */
+.role-access-card {
+  display: flex !important;
+  align-items: center !important;
+  gap: 1rem !important;
+  padding: 0.95rem 1.15rem !important;
+  background-color: #FFFFFF !important;
+  border: 1px solid #EADCCB !important;
+  border-left: 4px solid #D97736 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 1px 3px rgba(41, 37, 36, 0.05) !important;
+  transition: all 0.2s ease-in-out !important;
+  cursor: pointer;
+}
+
+.role-access-card:hover {
+  background-color: #FFF9F2 !important;
+  border-color: #D97736 !important;
+  border-left: 4px solid #B45309 !important;
+  box-shadow: 0 4px 14px rgba(217, 119, 54, 0.16) !important;
+  transform: translateY(-2px);
+}
+
+.role-access-icon {
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  background-color: #FFF0E2 !important;
+  color: #D97736 !important;
+  border: 1px solid #FCE4CC !important;
+  border-radius: 8px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 1.35rem !important;
+  transition: all 0.2s ease-in-out !important;
+}
+
+.role-access-card:hover .role-access-icon {
+  background-color: #D97736 !important;
+  color: #FFFFFF !important;
+  border-color: #B45309 !important;
+}
+
+.role-access-chevron {
+  transition: transform 0.2s ease-in-out, color 0.2s ease-in-out;
+}
+
+.role-access-card:hover .role-access-chevron {
+  color: #D97736 !important;
+  transform: translateX(3px);
+}
