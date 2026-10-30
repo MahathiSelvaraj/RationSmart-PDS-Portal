@@ -1105,29 +1105,71 @@ main.content-wrapper {
   font-weight: 700 !important;
 }
 
-/* Status Badges */
+/* Unified Status Badges - High-Contrast Refined Orange & Warm Ivory System */
+.badge.bg-success,
+.badge-success,
 .badge-pds-success {
-  background-color: #E8F5E9 !important;
-  color: #1B5E20 !important;
-  border: 1px solid #81C784 !important;
+  background-color: #D97736 !important;
+  color: #FFFFFF !important;
+  border: 1px solid #B45309 !important;
+  font-weight: 700 !important;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
 }
 
+.badge.bg-secondary,
+.badge-secondary {
+  background-color: #FFF0E2 !important;
+  color: #78350F !important;
+  border: 1px solid #EADCCB !important;
+  font-weight: 700 !important;
+}
+
+.badge.bg-primary,
+.badge-primary {
+  background-color: #D97736 !important;
+  color: #FFFFFF !important;
+  border: 1px solid #B45309 !important;
+  font-weight: 700 !important;
+}
+
+.badge.bg-warning,
+.badge-warning,
 .badge-pds-warning {
-  background-color: #FFF8E1 !important;
-  color: #E65100 !important;
-  border: 1px solid #FFD54F !important;
+  background-color: #FEF3C7 !important;
+  color: #92400E !important;
+  border: 1px solid #FCD34D !important;
+  font-weight: 700 !important;
 }
 
+.badge.bg-danger,
+.badge-danger,
 .badge-pds-danger {
-  background-color: #FFEBEE !important;
-  color: #B71C1C !important;
-  border: 1px solid #E57373 !important;
+  background-color: #FEE2E2 !important;
+  color: #991B1B !important;
+  border: 1px solid #F87171 !important;
+  font-weight: 700 !important;
 }
 
+.badge.bg-info,
+.badge-info,
 .badge-pds-info {
-  background-color: #E3F2FD !important;
-  color: #0D47A1 !important;
-  border: 1px solid #90CAF9 !important;
+  background-color: #FCE4CC !important;
+  color: #7C2D12 !important;
+  border: 1px solid #FDBA74 !important;
+  font-weight: 700 !important;
+}
+
+/* Primary Accents Unified to Refined Saffron/Orange Theme */
+.text-primary {
+  color: #D97736 !important;
+}
+
+.border-primary {
+  border-color: #D97736 !important;
+}
+
+.link-primary {
+  color: #B45309 !important;
 }
 
 /* Small / Helper Text Standardization */

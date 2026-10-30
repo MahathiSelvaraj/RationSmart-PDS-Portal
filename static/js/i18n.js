@@ -118,6 +118,35 @@ const PDS_I18N_DICT = {
     'Download QR Image': 'QR படம் பதிவிறக்கு',
     'Close': 'மூடு',
 
+    // Additional Login & General Form Terms
+    'Username': 'பயனர் பெயர்',
+    'Password': 'கடவுச்சொல்',
+    'Sign In': 'உள்நுழைக',
+    'Remember me': 'என்னை நினைவில் கொள்',
+    'Dealer': 'டீலர்',
+    'Citizen': 'பொதுமக்கள்',
+    'Administrator': 'நிர்வாகி',
+    'Role': 'பங்கு',
+
+    // Status Values
+    'Active': 'செயலில்',
+    'Inactive': 'செயலற்றது',
+    'Completed': 'நிறைவடைந்தது',
+    'Pending': 'நிலுவையில்',
+    'Resolved': 'தீர்க்கப்பட்டது',
+    'Rejected': 'நிராகரிக்கப்பட்டது',
+
+    // Receipt & Verification Labels
+    'Disbursed Date & Time': 'வழங்கப்பட்ட தேதி & நேரம்',
+    'Beneficiary Details': 'பயனாளி விவரங்கள்',
+    'Identity Verification:': 'அடையாள சரிபார்ப்பு:',
+    'Commodities Distributed': 'வழங்கப்பட்ட உணவுப் பொருட்கள்',
+    'Grand Total Amount:': 'செலுத்த வேண்டிய மொத்த தொகை:',
+    'Print Digital Memo': 'ரசீது அச்சிடுக',
+    'Biometric Auth:': 'கைரேகை சரிபார்ப்பு:',
+    'Cardholder Name:': 'கார்டுதாரர் பெயர்:',
+    'Scheme Category:': 'திட்டப் பிரிவு:',
+
     // Commodities
     'Rice (NFSA Grade A)': 'அரிசி (தரம் A)',
     'Wheat (Fortified Atta)': 'கோதுமை (செறிவூட்டப்பட்டது)',

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Government PDS Transaction Verification - {{ transaction.bill_number if transaction else searched_bill }}{% endblock %}
+{% block title %}RationSmart PDS Transaction Verification - {{ transaction.bill_number if transaction else searched_bill }}{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center py-4">
@@ -23,21 +23,50 @@
         </div>
 
         {% if transaction %}
-        <!-- 1. VERIFIED OFFICIAL CARD -->
+        <!-- 1. TRANSACTION DETAILS CARD -->
         <div class="card card-pds shadow-sm border-0 mb-4 overflow-hidden">
             <!-- Header Verification Banner -->
+            {% if sig_status == 'TAMPERED' %}
+            <div class="bg-danger text-white p-4 text-center">
+                <div class="d-inline-flex align-items-center justify-content-center bg-white text-danger rounded-circle shadow-sm mb-2" style="width: 56px; height: 56px;">
+                    <i class="bi bi-shield-slash-fill fs-2"></i>
+                </div>
+                <h3 class="fw-bold mb-1">SIGNATURE MISMATCH &bull; TAMPERING DETECTED</h3>
+                <p class="mb-0 small text-white-50">RationSmart Digital PDS Portal &bull; Cryptographic Integrity Verification</p>
+                <div class="badge bg-warning text-dark fw-bold mt-2 px-3 py-1 fs-6">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i> Warning: QR Signature Does Not Match Database Record
+                </div>
+            </div>
+            {% else %}
             <div class="bg-success text-white p-4 text-center">
                 <div class="d-inline-flex align-items-center justify-content-center bg-white text-success rounded-circle shadow-sm mb-2" style="width: 56px; height: 56px;">
                     <i class="bi bi-patch-check-fill fs-2"></i>
                 </div>
-                <h3 class="fw-bold mb-1">OFFICIAL PDS TRANSACTION VERIFIED</h3>
-                <p class="mb-0 small text-white-50">Department of Food and Civil Supplies &bull; Government of Tamil Nadu</p>
+                <h3 class="fw-bold mb-1">RATIONSMART TRANSACTION VERIFIED</h3>
+                <p class="mb-0 small text-white-50">RationSmart Academic Project Portal &bull; Digital PDS Integrity System</p>
                 <div class="badge bg-warning text-dark fw-bold mt-2 px-3 py-1 fs-6">
-                    <i class="bi bi-shield-check me-1"></i> Tamper-Proof Cryptographic Verification
+                    {% if sig_status == 'VERIFIED' %}
+                    <i class="bi bi-shield-check me-1"></i> HMAC-SHA256 Cryptographic Signature: Authentic
+                    {% else %}
+                    <i class="bi bi-database-check me-1"></i> Database Record: Verified
+                    {% endif %}
                 </div>
             </div>
+            {% endif %}
 
             <div class="card-body p-4">
+                <!-- Academic Demonstration Notice -->
+                <div class="alert alert-info py-2 px-3 small mb-4 border-0 bg-opacity-25 text-dark">
+                    <i class="bi bi-info-circle me-1"></i> <strong>RationSmart Project Verification:</strong> This digital receipt inspection is powered by the RationSmart student project to demonstrate offline-capable PDS operations, server-side idempotency, and tamper-evident cryptographic verification.
+                </div>
+
+                {% if sig_status == 'TAMPERED' %}
+                <div class="alert alert-danger py-3 px-3 mb-4">
+                    <h6 class="fw-bold text-danger mb-1"><i class="bi bi-shield-x me-2"></i>Cryptographic Tampering Warning</h6>
+                    <p class="small mb-0">The signature token attached to this request (<code>{{ provided_sig }}</code>) does NOT match the authentic server-side cryptographic hash. This indicates that the QR code or URL parameters have been modified or fabricated.</p>
+                </div>
+                {% endif %}
+
                 <!-- Summary Key Values -->
                 <div class="alert alert-light border p-3 mb-4 rounded-3">
                     <div class="row g-3">
@@ -57,23 +86,24 @@
                         <div class="col-sm-6 text-sm-end">
                             <small class="text-muted text-uppercase d-block fw-bold" style="font-size: 0.75rem;">Authorized Dealer</small>
                             <strong>{{ transaction.shop.dealer_name }}</strong>
-                            <div class="small text-muted">Lic No: {{ transaction.shop.license_no }}</div>
+                            <div class="small text-muted">Shop ID: #{{ transaction.shop.id }}</div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Beneficiary Cardholder Details -->
+                <!-- Beneficiary Cardholder Details (Privacy-Preserved for Public Endpoint) -->
                 <div class="card bg-light border-0 mb-4">
                     <div class="card-body p-3">
-                        <h6 class="fw-bold text-dark mb-2 border-bottom pb-2">
-                            <i class="bi bi-person-badge-fill text-primary me-2"></i>Beneficiary Cardholder
+                        <h6 class="fw-bold text-dark mb-2 border-bottom pb-2 d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-person-badge-fill text-primary me-2"></i>Beneficiary Details</span>
+                            <span class="badge bg-secondary text-white" style="font-size: 0.7rem;"><i class="bi bi-eye-slash me-1"></i>Privacy Masked</span>
                         </h6>
                         <div class="row g-2 small">
                             <div class="col-sm-6">
-                                <span class="text-muted">Cardholder Name:</span> <strong>{{ transaction.ration_card.head_of_family }}</strong>
+                                <span class="text-muted">Cardholder Name:</span> <strong>{{ masked_head_of_family or transaction.ration_card.head_of_family }}</strong>
                             </div>
                             <div class="col-sm-6 text-sm-end">
-                                <span class="text-muted">Ration Card No:</span> <strong><code>{{ transaction.ration_card.card_number }}</code></strong>
+                                <span class="text-muted">Ration Card No:</span> <strong><code>{{ masked_card_number or transaction.ration_card.card_number }}</code></strong>
                             </div>
                             <div class="col-sm-6">
                                 <span class="text-muted">Scheme Category:</span> 
@@ -81,8 +111,8 @@
                                 <span class="badge {{ badge_info[1] }} ms-1">{{ badge_info[0] }}</span>
                             </div>
                             <div class="col-sm-6 text-sm-end">
-                                <span class="text-muted">Biometric Auth:</span> 
-                                <span class="badge bg-success"><i class="bi bi-fingerprint me-1"></i>Aadhaar: **{{ transaction.ration_card.aadhaar_last4 }}</span>
+                                <span class="text-muted">Identity Verification:</span> 
+                                <span class="badge bg-success"><i class="bi bi-shield-check me-1"></i>Biometric Aadhaar Verified (On File)</span>
                             </div>
                         </div>
                     </div>
@@ -140,28 +170,28 @@
                     <div class="d-flex align-items-center gap-2 mb-2">
                         <i class="bi bi-shield-lock-fill text-success fs-4"></i>
                         <div>
-                            <strong class="d-block text-dark">Cryptographic Digital Authenticity Seal</strong>
-                            <span class="small text-muted">This transaction is cryptographically signed and stored in immutable audit logs.</span>
+                            <strong class="d-block text-dark">Cryptographic Digital Authenticity Seal (HMAC-SHA256)</strong>
+                            <span class="small text-muted">This transaction is cryptographically authenticated using the RationSmart central server key.</span>
                         </div>
                     </div>
                     {% if digital_seal %}
                     <div class="mt-2">
-                        <small class="text-muted d-block">SHA-256 Digest:</small>
+                        <small class="text-muted d-block">Server Cryptographic Digest:</small>
                         <code class="d-block p-2 bg-white border rounded text-dark text-break fw-bold" style="font-size: 0.8rem;">
                             {{ digital_seal }}
                         </code>
                     </div>
                     {% endif %}
                     <div class="d-flex justify-content-between flex-wrap gap-2 mt-2 pt-2 border-top text-muted small">
-                        <span><i class="bi bi-check2-circle text-success me-1"></i> Exact-Once Inventory Deduction: <strong>Verified</strong></span>
-                        <span><i class="bi bi-clock-history text-primary me-1"></i> Authenticated at: <strong>{{ transaction.created_at.strftime('%Y-%m-%d %H:%M:%S UTC') if transaction.created_at else 'Verified' }}</strong></span>
+                        <span><i class="bi bi-check2-circle text-success me-1"></i> Exact-Once Inventory Deduction: <strong>Enforced</strong></span>
+                        <span><i class="bi bi-clock-history text-primary me-1"></i> Recorded at: <strong>{{ transaction.created_at.strftime('%Y-%m-%d %H:%M:%S UTC') if transaction.created_at else 'Verified' }}</strong></span>
                     </div>
                 </div>
             </div>
 
-            <!-- Footer Help Notice -->
+            <!-- Footer Project Notice -->
             <div class="card-footer bg-light p-3 text-center small text-muted border-0">
-                <i class="bi bi-info-circle me-1"></i> For any questions or grievances, contact Government PDS Consumer Helpline: <strong>1800-11-4000</strong>
+                <i class="bi bi-info-circle me-1"></i> RationSmart Academic PDS Portal &bull; Designed for Rural Inclusion, Offline-First Resilience, and Anti-Diversion Integrity
             </div>
         </div>
 
@@ -178,7 +208,7 @@
             </p>
             <div class="alert alert-warning py-3 px-4 mb-4 text-start">
                 <strong><i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>Security Advisory:</strong>
-                If you were provided a paper receipt with this bill number, it may be a forged, unrecorded, or canceled transaction. Report any unauthorized fair price shop transactions to the Vigilance Cell immediately.
+                If you were provided a paper receipt with this bill number, it may be a forged, unrecorded, or canceled transaction. Report any unauthorized fair price shop transactions to the grievance cell.
             </div>
             <div class="d-flex justify-content-center gap-3">
                 <a href="{{ url_for('raise_complaint') }}" class="btn btn-danger fw-bold">
@@ -200,7 +230,7 @@
 function speakVerifiedReceipt(btn) {
     if (!window.pdsVoice) return;
     const billNumber = "{{ transaction.bill_number }}";
-    const cardHolder = "{{ transaction.ration_card.head_of_family }}";
+    const cardHolder = "{{ masked_head_of_family or transaction.ration_card.head_of_family }}";
     const totalAmount = {{ transaction.total_amount }};
     const items = [
         {% for item in transaction.items %}

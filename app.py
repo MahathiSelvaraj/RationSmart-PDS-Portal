@@ -446,12 +446,23 @@ def create_app(config_class=Config):
 
         return render_template('reports/receipt.html', transaction=tx)
 
+    def generate_receipt_hmac(tx, secret_key):
+        """
+        Generate cryptographic HMAC-SHA256 signature for a transaction
+        using the server's SECRET_KEY to detect any tampering by an attacker.
+        """
+        import hmac
+        import hashlib
+        canonical_data = f"{tx.bill_number}|{tx.ration_card.card_number}|{tx.total_amount:.2f}|{tx.shop.shop_code}|{tx.transaction_date.strftime('%Y-%m-%d %H:%M:%S')}"
+        return hmac.new(secret_key.encode('utf-8'), canonical_data.encode('utf-8'), hashlib.sha256).hexdigest()[:32].upper()
+
     @app.route('/qr/receipt/<int:transaction_id>')
     def receipt_qr_code(transaction_id):
         tx = db.session.get(DistributionTransaction, transaction_id)
         if not tx:
             abort(404)
-        target_url = url_for('public_verify_receipt', bill_number=tx.bill_number, _external=True)
+        sig = generate_receipt_hmac(tx, app.config['SECRET_KEY'])
+        target_url = url_for('public_verify_receipt', bill_number=tx.bill_number, sig=sig, _external=True)
         qr = qrcode.QRCode(
             version=1,
             error_correction=qrcode.constants.ERROR_CORRECT_M,
@@ -469,9 +480,11 @@ def create_app(config_class=Config):
     @app.route('/verify-receipt/<bill_number>')
     @app.route('/verify-receipt')
     def public_verify_receipt(bill_number=None):
+        import hmac
         if not bill_number:
             bill_number = request.args.get('bill_number', '').strip()
             
+        provided_sig = request.args.get('sig', '').strip().upper()
         tx = None
         if bill_number:
             tx = DistributionTransaction.query.filter_by(bill_number=bill_number).first()
@@ -479,14 +492,55 @@ def create_app(config_class=Config):
                 # Also try matching clientSaleId for synced offline transactions
                 tx = DistributionTransaction.query.filter_by(client_sale_id=bill_number).first()
         
-        # Calculate cryptographic tamper-evident verification seal
         digital_seal = None
-        if tx:
-            import hashlib
-            raw_signature = f"{tx.bill_number}:{tx.ration_card.card_number}:{tx.total_amount}:{tx.shop.shop_code}:{tx.transaction_date.isoformat()}"
-            digital_seal = hashlib.sha256(raw_signature.encode('utf-8')).hexdigest()[:32].upper()
+        sig_status = None # 'VERIFIED', 'TAMPERED', 'MANUAL_LOOKUP'
+        masked_card_number = None
+        masked_head_of_family = None
 
-        return render_template('reports/public_receipt_verify.html', transaction=tx, searched_bill=bill_number, digital_seal=digital_seal)
+        if tx:
+            expected_sig = generate_receipt_hmac(tx, app.config['SECRET_KEY'])
+            digital_seal = expected_sig
+            
+            if provided_sig:
+                if hmac.compare_digest(provided_sig, expected_sig):
+                    sig_status = 'VERIFIED'
+                else:
+                    sig_status = 'TAMPERED'
+            else:
+                sig_status = 'MANUAL_LOOKUP'
+
+            # Privacy Masking: Never expose full ration card number, full name or Aadhaar on public verification
+            card_num = tx.ration_card.card_number
+            if '-' in card_num:
+                parts = card_num.split('-')
+                if len(parts) >= 3:
+                    masked_card_number = f"{parts[0]}-***-{parts[-1]}"
+                else:
+                    masked_card_number = f"{parts[0]}-***{parts[-1][-2:]}"
+            elif len(card_num) > 6:
+                masked_card_number = card_num[:3] + '***' + card_num[-3:]
+            else:
+                masked_card_number = '***' + card_num[-3:]
+            
+            hof = tx.ration_card.head_of_family.strip()
+            hof_parts = hof.split()
+            if len(hof_parts) >= 2:
+                masked_head_of_family = f"{hof_parts[0][0]}**** {hof_parts[-1][0]}****"
+            elif len(hof) > 2:
+                masked_head_of_family = f"{hof[0]}****{hof[-1]}"
+            else:
+                masked_head_of_family = f"{hof[0]}***"
+
+        return render_template(
+            'reports/public_receipt_verify.html',
+            transaction=tx,
+            searched_bill=bill_number,
+            digital_seal=digital_seal,
+            sig_status=sig_status,
+            provided_sig=provided_sig,
+            masked_card_number=masked_card_number,
+            masked_head_of_family=masked_head_of_family
+        )
 
 
     # =========================================================================
@@ -1178,7 +1232,17 @@ def create_app(config_class=Config):
 
             except Exception as e:
                 db.session.rollback()
-                rejected.append({'clientSaleId': client_sale_id, 'reason': f"Database sync transaction error: {str(e)}"})
+                concurrent_tx = DistributionTransaction.query.filter_by(client_sale_id=client_sale_id).first()
+                if concurrent_tx:
+                    already_processed.append({
+                        'clientSaleId': client_sale_id,
+                        'status': 'already_processed',
+                        'billNumber': concurrent_tx.bill_number,
+                        'transactionId': concurrent_tx.id,
+                        'totalAmount': concurrent_tx.total_amount
+                    })
+                else:
+                    rejected.append({'clientSaleId': client_sale_id, 'reason': f"Database sync transaction error: {str(e)}"})
 
         return jsonify({
             'success': True,
